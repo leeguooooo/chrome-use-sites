@@ -32,6 +32,9 @@ chrome-use site sggit/pr-create --base dev          --head feat/leo/xxx --title 
 chrome-use site sggit/pr-create --base feature-test --head feat/leo/xxx --title "feat: xxx" --body "..."
 chrome-use site sggit/pr-create --base main         --head feat/leo/xxx --title "feat: xxx" --body "..."
 
+# merge a PR (the dev one auto-merges in our flow)
+chrome-use site sggit/pr-merge --pr 134
+
 # list PRs
 chrome-use site sggit/pr-list ka-cn/super-admin closed   # positional
 chrome-use site sggit/pr-list --status all               # or a flag
@@ -43,6 +46,7 @@ chrome-use site sggit/pr-list --status all               # or a flag
 | --- | --- | --- |
 | `sggit/pr-create` | `--base --head --title [--body] [--repo]` | POSTs the Gogs compare form (`_csrf`+`title`+`content`); 302 → the new PR. Refuses `base==head` (Gogs would otherwise create an empty PR). |
 | `sggit/pr-list` | `[repo] [status]` / `--status open\|closed\|all` | Parses the `/pulls` page. |
+| `sggit/pr-merge` | `--pr <n> [--repo] [--style] [--message]` | POSTs `/pulls/<n>/merge` (`_csrf`+`merge_style`); default `create_merge_commit`. Detects conflicts / already-merged / no-permission and errors instead of half-acting. Meant for the **dev** PR — use with care on feature-test/main. |
 
 **Gotchas** (baked into the adapters / learned the hard way):
 

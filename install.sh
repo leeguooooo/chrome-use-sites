@@ -14,7 +14,7 @@ BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 DEST_ROOT="${CHROME_USE_HOME:-$HOME/.chrome-use}/sites"
 
 # packName:file file ...
-PACKS="sggit/pr-create.js sggit/pr-list.js"
+PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js"
 
 echo "Installing chrome-use site adapters -> ${DEST_ROOT}"
 for rel in $PACKS; do
