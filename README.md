@@ -4,7 +4,7 @@ Org / private **[chrome-use](https://github.com/leeguooooo/chrome-use) site adap
 
 A *site adapter* is a small JS function with a `/* @meta {…} */` header. `chrome-use site <name>/<cmd>` navigates to the adapter's domain **in your own logged-in tab** and runs the function there, returning structured JSON — no scraping, no screenshots, and it works behind auth/VPN because it runs as you.
 
-chrome-use only auto-syncs the public pack (`chrome-use site update` pulls `epiral/bb-sites`). It has **no built-in mechanism for a private/second source** yet (see the upstream proposal: [leeguooooo/chrome-use#…](https://github.com/leeguooooo/chrome-use/issues)). Custom adapters dropped into `~/.chrome-use/sites/` **do survive `site update`** (it merges, it doesn't wipe), so this repo just installs them there.
+chrome-use only auto-syncs the public pack (`chrome-use site update` pulls `epiral/bb-sites`). It has **no built-in mechanism for a private/second source** yet (see the upstream proposal: [leeguooooo/chrome-use#127](https://github.com/leeguooooo/chrome-use/issues/127)). Custom adapters dropped into `~/.chrome-use/sites/` **do survive `site update`** (it merges, it doesn't wipe), so this repo just installs them there.
 
 ## Install
 
