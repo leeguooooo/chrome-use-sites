@@ -1,21 +1,28 @@
 # chrome-use-sites
 
-Org / private **[chrome-use](https://github.com/leeguooooo/chrome-use) site adapters** — the ones that don't belong in the public [`epiral/bb-sites`](https://github.com/epiral/bb-sites) community pack because they target internal or self-hosted services.
+The official **[chrome-use](https://github.com/leeguooooo/chrome-use) site adapter source**. It contains adapters maintained by the chrome-use project, including ones for internal or self-hosted services that do not belong in the public [`epiral/bb-sites`](https://github.com/epiral/bb-sites) community source.
 
 A *site adapter* is a small JS function with a `/* @meta {…} */` header. `chrome-use site <name>/<cmd>` navigates to the adapter's domain **in your own logged-in tab** and runs the function there, returning structured JSON — no scraping, no screenshots, and it works behind auth/VPN because it runs as you.
 
-chrome-use only auto-syncs the public pack (`chrome-use site update` pulls `epiral/bb-sites`). It has **no built-in mechanism for a private/second source** yet (see the upstream proposal: [leeguooooo/chrome-use#127](https://github.com/leeguooooo/chrome-use/issues/127)). Custom adapters dropped into `~/.chrome-use/sites/` **do survive `site update`** (it merges, it doesn't wipe), so this repo just installs them there.
+chrome-use has two built-in adapter sources:
 
-## Install
+- Community: [`epiral/bb-sites`](https://github.com/epiral/bb-sites)
+- Official: [`leeguooooo/chrome-use-sites`](https://github.com/leeguooooo/chrome-use-sites)
+
+Both are fetched automatically on first use and by `chrome-use site update`. No `site add` or separate installer is required in versions containing [chrome-use#133](https://github.com/leeguooooo/chrome-use/pull/133).
+
+## Install and update
+
+```sh
+chrome-use site update
+chrome-use site sources
+chrome-use site list | grep '^sggit/'
+```
+
+For chrome-use v1.5.77 and earlier, use the legacy installer:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/leeguooooo/chrome-use-sites/main/install.sh | sh
-```
-
-Then:
-
-```sh
-chrome-use site list | grep sggit
 ```
 
 Adapters run in your logged-in browser tab, so **sign in to the target site first** (and connect VPN/WARP if it's internal).
@@ -56,7 +63,7 @@ chrome-use site sggit/pr-list --status all               # or a flag
 
 ## Adding an adapter
 
-Drop `packname/command.js` in this repo, add its path to `PACKS` in `install.sh`, and follow the shape of the existing files:
+Drop `packname/command.js` in this repo and follow the shape of the existing files. Current chrome-use versions discover `.js` adapters directly from the repository tree. Also add the path to `PACKS` in `install.sh` while the legacy v1.5.77 installer remains supported.
 
 ```js
 /* @meta
