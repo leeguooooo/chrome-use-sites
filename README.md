@@ -29,6 +29,17 @@ Adapters run in your logged-in browser tab, so **sign in to the target site firs
 
 ## Packs
 
+### `twitter/` — X search and conversation threads
+
+The official Twitter adapters return a stable engagement schema. Every tweet
+includes `likes`, `retweets`, `replies`, `bookmarks`, and numeric `views`.
+When X omits or restricts a metric, its value is `null`.
+
+```sh
+chrome-use site twitter/search "chrome-use" --count 20
+chrome-use site twitter/thread 2048506314163458106
+```
+
 ### `sggit/` — self-hosted Gogs (`sg-git.pwtk.cc`)
 
 One-command pull requests on our internal Gogs, instead of clicking through the compare page.
