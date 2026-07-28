@@ -32,6 +32,9 @@ async function(args) {
   });
   const fieldToggles = JSON.stringify({withArticleRichContentState: true, withArticlePlainText: false});
   const tweetDetailQueryId = findGraphQLQueryId('TweetDetail', 'nBS-WpgA6ZG0CyNHD517JQ');
+  if (!tweetDetailQueryId) {
+    return {error: 'Cannot find TweetDetail queryId', hint: 'x.com API structure may have changed'};
+  }
 
   let tweets = [], seen = new Set(), cursor = null, maxPages = 5;
 
@@ -47,7 +50,7 @@ async function(args) {
     const viewCount = rawViewCount == null ? null : Number(rawViewCount);
     tweets.push({id: tw.rest_id, author: screenName, text: nt || l.full_text || '',
       url: 'https://x.com/' + (screenName || '_') + '/status/' + tw.rest_id,
-      likes: l.favorite_count, retweets: l.retweet_count,
+      likes: l.favorite_count ?? null, retweets: l.retweet_count ?? null,
       replies: l.reply_count ?? null, bookmarks: l.bookmark_count ?? null,
       views: Number.isFinite(viewCount) ? viewCount : null,
       in_reply_to: l.in_reply_to_status_id_str, created_at: l.created_at});

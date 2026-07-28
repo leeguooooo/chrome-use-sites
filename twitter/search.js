@@ -35,7 +35,10 @@ async function(args) {
     'X-Client-Transaction-Id': txId
   };
 
-  const count = Math.min(parseInt(args.count) || 20, 50);
+  const requestedCount = Number(args.count);
+  const count = Number.isInteger(requestedCount) && requestedCount > 0
+    ? Math.min(requestedCount, 50)
+    : 20;
   const product = (args.type === 'top') ? 'Top' : 'Latest';
   const variables = JSON.stringify({
     rawQuery: args.query, count, querySource: 'typed_query', product,
@@ -95,7 +98,7 @@ async function(args) {
       tweets.push({id: tw.rest_id, author: screenName,
         name: u?.legacy?.name || u?.core?.name,
         url: 'https://x.com/' + (screenName || '_') + '/status/' + tw.rest_id,
-        text: nt || l.full_text || '', likes: l.favorite_count, retweets: l.retweet_count,
+        text: nt || l.full_text || '', likes: l.favorite_count ?? null, retweets: l.retweet_count ?? null,
         replies: l.reply_count ?? null, bookmarks: l.bookmark_count ?? null,
         views: Number.isFinite(viewCount) ? viewCount : null,
         in_reply_to: l.in_reply_to_status_id_str || undefined, created_at: l.created_at});
