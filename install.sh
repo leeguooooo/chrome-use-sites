@@ -18,12 +18,27 @@ PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js t
 chatgpt/_helper.js chatgpt/me.js chatgpt/conversations.js chatgpt/projects.js
 chatgpt/models.js chatgpt/conversation.js"
 
+# Files a pack needs that live in another repo. The twitter adapters call
+# findGraphQLQueryId / findTransactionIdGenerator, which are defined in the
+# community pack's twitter/_helper.js (epiral/bb-sites), not here. That repo
+# carries no license, so it is fetched from its source rather than copied in,
+# and pinned to a commit so an upstream rename cannot break these adapters.
+# Format: <dest path>=<url>
+EXTERNAL="twitter/_helper.js=https://raw.githubusercontent.com/epiral/bb-sites/f0cdfbf17e0fc8d86e2b1d9a8561e14b01faa013/twitter/_helper.js"
+
 echo "Installing chrome-use site adapters -> ${DEST_ROOT}"
 for rel in $PACKS; do
   dir="${DEST_ROOT}/$(dirname "$rel")"
   mkdir -p "$dir"
   printf '  → %s\n' "$rel"
   curl -fsSL "${BASE}/${rel}" -o "${DEST_ROOT}/${rel}"
+done
+for entry in $EXTERNAL; do
+  rel="${entry%%=*}"
+  url="${entry#*=}"
+  mkdir -p "${DEST_ROOT}/$(dirname "$rel")"
+  printf '  → %s (from %s)\n' "$rel" "${url#https://raw.githubusercontent.com/}"
+  curl -fsSL "$url" -o "${DEST_ROOT}/${rel}"
 done
 
 echo "✓ done"
