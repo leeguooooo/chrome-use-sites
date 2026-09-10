@@ -119,3 +119,31 @@ function cgptCount(raw, dflt, max) {
   if (!Number.isInteger(n) || n <= 0) return dflt;
   return Math.min(n, max);
 }
+
+/**
+ * The human-readable text of a message's `content`, across the shapes ChatGPT
+ * uses. `text`/`multimodal_text` carry `parts` (strings, or objects for images
+ * and files); `reasoning_recap` and `thoughts` carry a plain `content` string.
+ * Anything unrecognised returns '' rather than throwing, so one new content
+ * type cannot break a whole transcript.
+ */
+function cgptMessageText(content) {
+  if (!content) return '';
+  if (Array.isArray(content.parts)) {
+    return content.parts
+      .map((p) => {
+        if (typeof p === 'string') return p;
+        if (p && typeof p === 'object') {
+          // Image/file parts have no text; name them so the turn isn't silently empty.
+          return p.text || (p.content_type ? '[' + p.content_type + ']' : '');
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+  }
+  if (typeof content.content === 'string') return content.content.trim();
+  if (typeof content.text === 'string') return content.text.trim();
+  return '';
+}

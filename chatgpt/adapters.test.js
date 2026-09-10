@@ -220,3 +220,152 @@ test('cgptRateLimitedDialog detects the page dialog without any network call', a
   )
   assert.equal(probe(), true)
 })
+
+// ---- chatgpt/models -------------------------------------------------------
+
+const MODELS = {
+  default_model_slug: 'gpt-5-6',
+  model_picker_version: 2,
+  categories: [
+    { category: 'pro', human_category_name: 'Pro', human_category_short_name: '6 Pro',
+      default_model: 'gpt-6-pro', subscription_level: 'pro', tagline: 'Research-grade intelligence' },
+  ],
+  models: [
+    { slug: 'gpt-5-6', title: 'GPT-5.6', description: 'd', max_tokens: 137000, tags: ['t'] },
+    { slug: 'gpt-6-pro', title: 'GPT-6 Pro', description: 'd', max_tokens: 196000, tags: [],
+      reasoning_type: 'pro', configurable_thinking_effort: true,
+      thinking_efforts: [{ thinking_effort: 'standard', full_label: 'Thinking', description: 'balanced' }] },
+  ],
+}
+
+test('models lists slugs and the account default', async () => {
+  const adapter = loadAdapter('./models.js', {
+    fetch: router({ '/api/auth/session': okJson(SESSION), '/backend-api/models': okJson(MODELS) }),
+  })
+  const r = await adapter({})
+  assert.equal(r.default, 'gpt-5-6')
+  assert.equal(r.picker_version, 2)
+  assert.equal(r.count, 2)
+  assert.deepEqual(r.models.map((m) => m.slug), ['gpt-5-6', 'gpt-6-pro'])
+  // Categories come from the API's snake_case keys, not the localStorage cache's camelCase.
+  assert.equal(r.categories[0].short_name, '6 Pro')
+})
+
+test('models filters on slug or title, case-insensitively', async () => {
+  const adapter = loadAdapter('./models.js', {
+    fetch: router({ '/api/auth/session': okJson(SESSION), '/backend-api/models': okJson(MODELS) }),
+  })
+  const r = await adapter({ slug: 'PRO' })
+  assert.equal(r.count, 1)
+  assert.equal(r.total, 2)
+  assert.equal(r.models[0].slug, 'gpt-6-pro')
+  // `reasoning_type: pro` is the flag that says "cannot use Apps/MCP connectors".
+  assert.equal(r.models[0].reasoning_type, 'pro')
+})
+
+test('models keeps effort lists only when asked', async () => {
+  const mk = () => loadAdapter('./models.js', {
+    fetch: router({ '/api/auth/session': okJson(SESSION), '/backend-api/models': okJson(MODELS) }),
+  })
+  const lean = await mk()({ slug: 'gpt-6-pro' })
+  assert.equal(lean.models[0].thinking_efforts, undefined)
+  assert.equal(lean.models[0].thinking_effort_count, 1)
+  const full = await mk()({ slug: 'gpt-6-pro', efforts: true })
+  assert.equal(full.models[0].thinking_efforts[0].effort, 'standard')
+})
+
+// ---- chatgpt/conversation -------------------------------------------------
+
+// Shaped after a real payload: a synthetic root with no message, a weight-0
+// tool placeholder, a reasoning recap, and the answer — plus an ABANDONED
+// branch that a naive Object.values() walk would splice into the transcript.
+const CONVO = {
+  conversation_id: 'c-1',
+  title: 'Reply M PRO',
+  create_time: 1, update_time: 2,
+  gizmo_id: 'g-p-x', default_model_slug: 'gpt-6-pro',
+  is_archived: false, is_starred: false, is_read_only: false, async_status: null,
+  current_node: 'n4',
+  mapping: {
+    root: { id: 'root', parent: null, children: ['n1'] },
+    n1: { id: 'n1', parent: 'root', children: ['n2', 'n3', 'dead'],
+          message: { author: { role: 'user' }, weight: 1, create_time: 1,
+                     content: { content_type: 'text', parts: ['Reply with exactly: M-PRO'] } } },
+    n2: { id: 'n2', parent: 'n1', children: [],
+          message: { author: { role: 'tool' }, weight: 0,
+                     content: { content_type: 'text', parts: [''] } } },
+    n3: { id: 'n3', parent: 'n1', children: ['n4'],
+          message: { author: { role: 'assistant' }, weight: 1, end_turn: true,
+                     content: { content_type: 'reasoning_recap', content: 'Worked for 18s' } } },
+    n4: { id: 'n4', parent: 'n3', children: [],
+          message: { author: { role: 'assistant' }, weight: 1, end_turn: true, create_time: 3,
+                     metadata: { model_slug: 'gpt-6-pro' },
+                     content: { content_type: 'text', parts: ['M-PRO'] } } },
+    dead: { id: 'dead', parent: 'n1', children: [],
+            message: { author: { role: 'assistant' }, weight: 1, end_turn: true,
+                       content: { content_type: 'text', parts: ['ABANDONED DRAFT'] } } },
+  },
+}
+
+const convoAdapter = () => loadAdapter('./conversation.js', {
+  fetch: router({ '/api/auth/session': okJson(SESSION), '/backend-api/conversation/': okJson(CONVO) }),
+})
+
+test('conversation follows the live branch and drops the abandoned one', async () => {
+  const r = await convoAdapter()({ id: 'c-1' })
+  const texts = r.messages.map((m) => m.text)
+  assert.deepEqual(texts, ['Reply with exactly: M-PRO', 'M-PRO'])
+  // The regenerated sibling must never appear — that is the whole reason we
+  // walk current_node's parent chain instead of the mapping's values.
+  assert.equal(texts.includes('ABANDONED DRAFT'), false)
+})
+
+test('conversation hides chrome by default and reveals it with all', async () => {
+  const lean = await convoAdapter()({ id: 'c-1' })
+  assert.equal(lean.messages.some((m) => m.content_type === 'reasoning_recap'), false)
+  // The weight-0 tool placeholder is hidden in BOTH modes: weight 0 means the
+  // account itself does not see it.
+  assert.equal(lean.messages.some((m) => m.role === 'tool'), false)
+  const full = await convoAdapter()({ id: 'c-1', all: true })
+  assert.equal(full.messages.some((m) => m.content_type === 'reasoning_recap'), true)
+})
+
+test('conversation reports the finished answer as final', async () => {
+  const r = await convoAdapter()({ id: 'c-1' })
+  assert.equal(r.final.text, 'M-PRO')
+  assert.equal(r.final.end_turn, true)
+  assert.equal(r.final.model, 'gpt-6-pro')
+  assert.equal(r.model, 'gpt-6-pro')
+  assert.equal(r.project, 'g-p-x')
+})
+
+test('conversation leaves final null while a turn is unfinished', async () => {
+  const running = JSON.parse(JSON.stringify(CONVO))
+  running.mapping.n4.message.end_turn = false
+  running.async_status = 1
+  const adapter = loadAdapter('./conversation.js', {
+    fetch: router({ '/api/auth/session': okJson(SESSION), '/backend-api/conversation/': okJson(running) }),
+  })
+  const r = await adapter({ id: 'c-1' })
+  // The text is on screen but the turn has not closed. Reporting it as the
+  // answer is exactly the mistake DOM-quiescence scraping makes.
+  assert.equal(r.final, null)
+  assert.equal(r.async_status, 1)
+})
+
+test('conversation accepts a pasted URL in either form', async () => {
+  const seen = []
+  const adapter = loadAdapter('./conversation.js', {
+    fetch: router({ '/api/auth/session': okJson(SESSION), '/backend-api/conversation/': okJson(CONVO) }, seen),
+  })
+  await adapter({ id: 'https://chatgpt.com/g/g-p-abc/c/6aa20b3f-c6fc-83e8-9007-e1e3d3a8eb3d' })
+  assert.equal(
+    seen.some((u) => u === '/backend-api/conversation/6aa20b3f-c6fc-83e8-9007-e1e3d3a8eb3d'),
+    true,
+  )
+})
+
+test('conversation rejects a missing id instead of fetching nonsense', async () => {
+  const r = await convoAdapter()({})
+  assert.match(r.error, /Missing conversation id/)
+})
