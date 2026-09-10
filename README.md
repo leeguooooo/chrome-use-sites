@@ -84,6 +84,7 @@ chrome-use site chatgpt/conversations --limit 10
 chrome-use site chatgpt/conversations --project g-p-68bf…     # one project only
 chrome-use site chatgpt/projects
 chrome-use site chatgpt/projects --name "Blog illustrations"   # exact match
+chrome-use site chatgpt/open-project --name "Blog illustrations"   # enter it (not read-only)
 ```
 
 | adapter | args | notes |
@@ -91,6 +92,7 @@ chrome-use site chatgpt/projects --name "Blog illustrations"   # exact match
 | `chatgpt/me` | — | Which account this browser is signed in as. Reads `/api/auth/session` **and** `/backend-api/me` (the latter answers from cookies alone, no bearer), so a live session whose token mint is broken reports `token_available: false` instead of looking healthy. |
 | `chatgpt/conversations` | `[limit] [offset] [project]` | `GET /backend-api/conversations?order=updated`. `limit` clamps to 1–100 (default 20). `--project` filters on `gizmo_id` client-side — the endpoint has no project filter. Returns `snippet` (the sidebar preview line), `starred`, `archived`. |
 | `chatgpt/projects` | `[name]` | Projects are "snorlax" gizmos; `GET /backend-api/gizmos/snorlax/sidebar?conversations_per_gizmo=0` is the only listing. `--name` is exact and case-sensitive; a miss tells you how many projects exist. |
+| `chatgpt/open-project` | `--name <project> \| --id <g-p-…> [--create true]` | **Not read-only**: navigates this tab into any Project so the next chat is filed under it from the start. Clicks the sidebar link in place when present (one backend request instead of ~45 for a reload), and only the link to the project **page**, never a conversation inside it. Resolves the name exactly like `chatgpt/projects`; creates the project only with `--create true`. Refuses while the "Too many requests" dialog is up. |
 
 **Why this pack is fetch-only, and must stay that way**
 
