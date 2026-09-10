@@ -41,12 +41,13 @@ test('me reports the signed-in account from both sources', async () => {
   const adapter = loadAdapter('./me.js', {
     fetch: router({
       '/api/auth/session': okJson(SESSION),
-      '/backend-api/me': okJson({ id: 'acct-9', email: 'a@b.c', geoip_country: 'JP' }),
+      '/backend-api/me': okJson({ id: 'acct-9', email: 'a@b.c', country: 'JP' }),
     }),
   })
   const r = await adapter({})
   assert.equal(r.signed_in, true)
   assert.equal(r.id, 'acct-9')
+  // `country`, not `geoip_country` — the latter is absent from /backend-api/me.
   assert.equal(r.country, 'JP')
   assert.equal(r.token_available, true)
 })
@@ -80,7 +81,10 @@ test('conversations clamps limit and always orders by updated', async () => {
     fetch: router(
       {
         '/api/auth/session': okJson(SESSION),
-        '/backend-api/conversations': okJson({ total: 7, items: [{ id: 'c1', title: 'T', gizmo_id: null }] }),
+        '/backend-api/conversations': okJson({
+          total: 4, // deliberately not account-wide; must not be exposed
+          items: [{ id: 'c1', title: 'T', gizmo_id: null, snippet: 'hi', is_starred: true }],
+        }),
       },
       seen,
     ),
@@ -88,7 +92,11 @@ test('conversations clamps limit and always orders by updated', async () => {
   for (const limit of ['-1', '0', 'nope', '500']) {
     const r = await adapter({ limit })
     assert.equal(r.conversations[0].url, 'https://chatgpt.com/c/c1')
-    assert.equal(r.total, 7)
+    assert.equal(r.conversations[0].snippet, 'hi')
+    assert.equal(r.conversations[0].starred, true)
+    // The server's `total` is NOT account-wide (observed total:4 against ~28
+    // conversations), so exposing it would make callers stop paging early.
+    assert.ok(!('total' in r), 'total must not be exposed')
   }
   const limits = seen
     .filter((u) => u.startsWith('/backend-api/conversations'))

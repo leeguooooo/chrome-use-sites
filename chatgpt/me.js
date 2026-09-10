@@ -39,7 +39,8 @@ async function(args) {
     id: account && account.id ? account.id : user.id || null,
     email: (account && account.email) || user.email || null,
     name: user.name || null,
-    country: (account && (account.geoip_country || account.country)) || null,
+    country: (account && account.country) || null,
+    region: (account && account.region) || null,
     auth_provider: (session && session.authProvider) || null,
     session_expires: (session && session.expires) || null,
     // A signed-in cookie jar whose token mint fails still can't call

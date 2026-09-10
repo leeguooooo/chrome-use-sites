@@ -36,6 +36,7 @@ async function(args) {
       description: (g.display && g.display.description) || null,
       url: 'https://chatgpt.com/g/' + g.id + '/project',
       updated: g.updated_at || null,
+      default_model: g.default_model || null,
     });
   }
 

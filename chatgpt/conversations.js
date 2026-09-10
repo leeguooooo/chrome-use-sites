@@ -33,9 +33,11 @@ async function(args) {
 
   return {
     count: filtered.length,
-    // The server's own total, so a caller can page without guessing whether a
-    // short page means "end of list" or "filtered".
-    total: (res.data && res.data.total) != null ? res.data.total : null,
+    // No `total` on purpose. The endpoint DOES return one, but it is not
+    // account-wide: limit=3 reported total:4 on an account whose sidebar lists
+    // ~28 conversations. A caller paging until `offset >= total` would stop
+    // after the second page believing it was done. A short page — fewer than
+    // `limit` rows — is the real end-of-list signal.
     offset: offset,
     project: wanted,
     conversations: filtered.map((c) => ({
@@ -45,7 +47,11 @@ async function(args) {
       created: c.create_time || null,
       updated: c.update_time || null,
       project: c.gizmo_id || null,
+      // The preview line ChatGPT shows in the sidebar — the one field that makes
+      // a listing readable without opening anything.
+      snippet: c.snippet || null,
       archived: c.is_archived === true,
+      starred: c.is_starred === true,
     })),
   };
 }
