@@ -398,3 +398,87 @@ test('install.sh ships every chatgpt adapter in this directory', () => {
   const stale = listed.filter((f) => !onDisk.includes(f))
   assert.deepEqual(stale, [], 'install.sh lists files that do not exist: ' + stale.join(', '))
 })
+
+// ---- open-project ------------------------------------------------------------
+
+const SIDEBAR = {
+  items: [
+    { gizmo: { gizmo: { id: 'g-p-aaa', display: { name: 'chatgpt-use' } } } },
+    { gizmo: { gizmo: { id: 'g-p-bbb', display: { name: 'Blog illustrations' } } } },
+  ],
+}
+
+/** A page whose sidebar holds `hrefs`, recording clicks and navigations. */
+function projectPage(hrefs, dialogText = '') {
+  const clicked = []
+  const assigned = []
+  const document = {
+    querySelectorAll: (sel) => {
+      if (sel.includes('dialog')) return dialogText ? [{ textContent: dialogText }] : []
+      return hrefs.map((h) => ({ getAttribute: () => h, click: () => clicked.push(h) }))
+    },
+    location: { assign: (u) => assigned.push(u) },
+  }
+  return { document, clicked, assigned }
+}
+
+const openProject = (page, fetch) => loadAdapter('./open-project.js', { document: page.document, fetch })
+
+test('open-project opens any project by name via its sidebar link, not a conversation inside it', async () => {
+  const page = projectPage(['/g/g-p-bbb-blog/c/6aa2-old-chat', '/g/g-p-bbb-blog/project'])
+  const r = await openProject(page, router({ '/api/auth/session': okJson(SESSION), '/backend-api/gizmos/snorlax/sidebar': okJson(SIDEBAR) }))({ name: 'Blog illustrations' })
+  assert.equal(r.ok, true)
+  assert.equal(r.id, 'g-p-bbb')
+  assert.equal(r.opened, 'in_place')
+  assert.deepEqual(page.clicked, ['/g/g-p-bbb-blog/project'])
+  assert.deepEqual(page.assigned, [])
+})
+
+test('open-project navigates when the project is not in the sidebar', async () => {
+  const page = projectPage(['/g/g-p-bbb-blog/c/6aa2-old-chat'])
+  const r = await openProject(page, router({ '/api/auth/session': okJson(SESSION), '/backend-api/gizmos/snorlax/sidebar': okJson(SIDEBAR) }))({ name: 'chatgpt-use' })
+  assert.equal(r.opened, 'navigate')
+  assert.deepEqual(page.clicked, [])
+  assert.deepEqual(page.assigned, ['https://chatgpt.com/g/g-p-aaa/project'])
+})
+
+test('open-project does not create a project unless asked', async () => {
+  const seen = []
+  const page = projectPage([])
+  const r = await openProject(page, router({ '/api/auth/session': okJson(SESSION), '/backend-api/gizmos/snorlax/sidebar': okJson(SIDEBAR) }, seen))({ name: 'blog illustrations' })
+  assert.match(r.error, /No project named/)
+  assert.match(r.hint, /2 project\(s\)/)
+  assert.equal(seen.some((u) => u === '/backend-api/projects'), false)
+  assert.deepEqual(page.assigned, [])
+})
+
+test('open-project --create makes the project and opens it', async () => {
+  let method
+  const page = projectPage([])
+  const r = await openProject(page, router({
+    '/api/auth/session': okJson(SESSION),
+    '/backend-api/gizmos/snorlax/sidebar': okJson(SIDEBAR),
+    '/backend-api/projects': (url, opts) => { method = opts.method; return okJson({ gizmo: { id: 'g-p-new' } }) },
+  }))({ name: 'Research', create: 'true' })
+  assert.equal(method, 'POST')
+  assert.equal(r.created, true)
+  assert.equal(r.id, 'g-p-new')
+  assert.deepEqual(page.assigned, ['https://chatgpt.com/g/g-p-new/project'])
+})
+
+test('open-project --id skips the name lookup', async () => {
+  const seen = []
+  const page = projectPage(['/g/g-p-zzz/project'])
+  const r = await openProject(page, router({}, seen))({ id: 'g-p-zzz' })
+  assert.equal(r.opened, 'in_place')
+  assert.deepEqual(seen, [])
+})
+
+test('open-project refuses to touch a throttled page', async () => {
+  const seen = []
+  const page = projectPage(['/g/g-p-aaa/project'], 'Too many requests')
+  const r = await openProject(page, router({}, seen))({ name: 'chatgpt-use' })
+  assert.match(r.error, /Too many requests/)
+  assert.deepEqual(seen, [])
+  assert.deepEqual(page.clicked, [])
+})

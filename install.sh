@@ -16,7 +16,7 @@ DEST_ROOT="${CHROME_USE_HOME:-$HOME/.chrome-use}/sites"
 # packName:file file ...
 PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js twitter/thread.js
 chatgpt/_helper.js chatgpt/me.js chatgpt/conversations.js chatgpt/projects.js
-chatgpt/models.js chatgpt/conversation.js"
+chatgpt/models.js chatgpt/conversation.js chatgpt/open-project.js"
 
 # Files a pack needs that live in another repo. The twitter adapters call
 # findGraphQLQueryId / findTransactionIdGenerator, which are defined in the
