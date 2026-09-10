@@ -15,7 +15,8 @@ DEST_ROOT="${CHROME_USE_HOME:-$HOME/.chrome-use}/sites"
 
 # packName:file file ...
 PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js twitter/thread.js
-chatgpt/_helper.js chatgpt/me.js chatgpt/conversations.js chatgpt/projects.js"
+chatgpt/_helper.js chatgpt/me.js chatgpt/conversations.js chatgpt/projects.js
+chatgpt/models.js chatgpt/conversation.js"
 
 echo "Installing chrome-use site adapters -> ${DEST_ROOT}"
 for rel in $PACKS; do

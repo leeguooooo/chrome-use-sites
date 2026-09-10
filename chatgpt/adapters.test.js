@@ -369,3 +369,32 @@ test('conversation rejects a missing id instead of fetching nonsense', async () 
   const r = await convoAdapter()({})
   assert.match(r.error, /Missing conversation id/)
 })
+
+// Guard against the packaging bug this pack was one commit away from shipping:
+// `models.js` and `conversation.js` were written, tested and merged while
+// install.sh's PACKS list still named only the first three adapters, so the
+// legacy installer would have fetched a chatgpt pack missing half of it — and
+// silently, since a pack with fewer adapters looks exactly like a pack.
+// The twitter pack has this bug today (chrome-use-sites#4): its PACKS entry
+// omits twitter/_helper.js, so search.js and thread.js throw
+// "findGraphQLQueryId is not defined" for anyone who installed that way.
+test('install.sh ships every chatgpt adapter in this directory', () => {
+  const install = fs.readFileSync(new URL('../install.sh', import.meta.url), 'utf8')
+  const onDisk = fs
+    .readdirSync(new URL('.', import.meta.url))
+    .filter((f) => f.endsWith('.js') && !f.endsWith('.test.js'))
+    .sort()
+
+  const missing = onDisk.filter((f) => !install.includes('chatgpt/' + f))
+  assert.deepEqual(
+    missing,
+    [],
+    'these adapters exist but install.sh will not fetch them: ' + missing.join(', '),
+  )
+
+  // And the reverse: a PACKS entry pointing at a file that no longer exists
+  // makes the installer 404 mid-run.
+  const listed = [...install.matchAll(/chatgpt\/([\w.-]+\.js)/g)].map((m) => m[1])
+  const stale = listed.filter((f) => !onDisk.includes(f))
+  assert.deepEqual(stale, [], 'install.sh lists files that do not exist: ' + stale.join(', '))
+})
