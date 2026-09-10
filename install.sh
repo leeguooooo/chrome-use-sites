@@ -3,7 +3,7 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/leeguooooo/chrome-use-sites/main/install.sh | sh
 #
-# Installs every adapter pack in this repo (currently: sggit and twitter). Custom adapters
+# Installs every adapter pack in this repo (currently: sggit, twitter and chatgpt). Custom adapters
 # under ~/.chrome-use/sites/ survive `chrome-use site update` (it merges the
 # community pack, it does not wipe the dir), so these stay put.
 set -eu
@@ -14,7 +14,8 @@ BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 DEST_ROOT="${CHROME_USE_HOME:-$HOME/.chrome-use}/sites"
 
 # packName:file file ...
-PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js twitter/thread.js"
+PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js twitter/thread.js
+chatgpt/_helper.js chatgpt/me.js chatgpt/conversations.js chatgpt/projects.js"
 
 echo "Installing chrome-use site adapters -> ${DEST_ROOT}"
 for rel in $PACKS; do
@@ -26,7 +27,7 @@ done
 
 echo "✓ done"
 echo
-echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter)/'"
+echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt)/'"
 echo "Try:     chrome-use site twitter/search \"chrome-use\""
 echo
 echo "Note: adapters run in YOUR logged-in browser tab, so you must be"
