@@ -375,9 +375,9 @@ test('conversation rejects a missing id instead of fetching nonsense', async () 
 // install.sh's PACKS list still named only the first three adapters, so the
 // legacy installer would have fetched a chatgpt pack missing half of it — and
 // silently, since a pack with fewer adapters looks exactly like a pack.
-// The twitter pack has this bug today (chrome-use-sites#4): its PACKS entry
-// omits twitter/_helper.js, so search.js and thread.js throw
-// "findGraphQLQueryId is not defined" for anyone who installed that way.
+// The twitter pack had a sibling of this bug (chrome-use-sites#4): nothing
+// fetched the helper its adapters call, so they threw "findGraphQLQueryId is
+// not defined" — see the guard in twitter/adapters.test.js.
 test('install.sh ships every chatgpt adapter in this directory', () => {
   const install = fs.readFileSync(new URL('../install.sh', import.meta.url), 'utf8')
   const onDisk = fs

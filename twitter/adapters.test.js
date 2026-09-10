@@ -124,3 +124,38 @@ test('thread keeps missing engagement metrics as null', async () => {
   assert.equal(result.tweets[0].bookmarks, 3)
   assert.equal(result.tweets[0].views, 456)
 })
+
+// chrome-use-sites#4: the tests above stub findGraphQLQueryId and
+// findTransactionIdGenerator, so they pass whether or not the real helper is
+// installed — which is how install.sh shipped a twitter pack that threw
+// "findGraphQLQueryId is not defined". Those functions live in the community
+// pack's twitter/_helper.js (epiral/bb-sites), so the installer has to fetch
+// that file from there, pinned to a commit.
+const HELPER_FNS = ['findGraphQLQueryId', 'findTransactionIdGenerator']
+
+test('install.sh fetches the helper the twitter adapters call into', () => {
+  const install = fs.readFileSync(new URL('../install.sh', import.meta.url), 'utf8')
+  const external = (install.match(/^EXTERNAL="([^"]*)"/m) || [, ''])[1]
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((e) => e.split('='))
+  const adapters = fs
+    .readdirSync(new URL('.', import.meta.url))
+    .filter((f) => f.endsWith('.js') && !f.endsWith('.test.js') && f !== '_helper.js')
+  const needsHelper = adapters.filter((f) => {
+    const src = fs.readFileSync(new URL(f, import.meta.url), 'utf8')
+    return HELPER_FNS.some((fn) => src.includes(fn + '('))
+  })
+  assert.ok(needsHelper.length > 0, 'expected search.js/thread.js to call the helper')
+
+  const localHelper = fs.existsSync(new URL('./_helper.js', import.meta.url))
+  const helper = external.find(([dest]) => dest === 'twitter/_helper.js')
+  assert.ok(
+    localHelper || helper,
+    `${needsHelper.join(', ')} call ${HELPER_FNS.join('/')} but install.sh fetches no twitter/_helper.js`,
+  )
+  if (helper) {
+    // A branch ref would let an upstream rename silently break the pack.
+    assert.match(helper[1], /\/[0-9a-f]{40}\/twitter\/_helper\.js$/, 'pin the helper to a full commit SHA')
+  }
+})
