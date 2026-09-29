@@ -7,12 +7,12 @@ Do **not** run `chrome-use site chatgpt/*`, or open chatgpt.com in scratch sessi
 Verify offline:
 
 ```sh
-node --test chatgpt/ twitter/
+node --test
 ```
 
 The tests load each adapter the way chrome-use does (with its family `_helper.js` in scope) against stubbed `fetch` and `document`; see `loadAdapter` and `router` in `chatgpt/adapters.test.js`. New behaviour gets a stubbed test there. If something can only be confirmed live, say so in the PR and leave it unverified.
 
-The same caution applies to other packs that drive a real logged-in account (twitter/, sggit/): prefer the stubbed tests to live calls.
+The same caution applies to other packs that drive a real logged-in account (twitter/, sggit/, xiaohongshu-creator/): prefer the stubbed tests to live calls. Xiaohongshu bans accounts for scripted behaviour, so a live check of `xiaohongshu-creator/*` is one run per adapter, one page, and never a loop. Develop against `xiaohongshu-creator/fixtures/`.
 
 ## Adding an adapter
 

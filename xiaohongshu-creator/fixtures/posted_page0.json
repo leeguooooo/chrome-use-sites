@@ -1,0 +1,125 @@
+{
+  "_fixture": "GET /api/galaxy/v2/creator/note/user/posted?tab=0&page=0 (no transform). Captured 2026-09-30, first 3 of 10 notes; xsec_token redacted.",
+  "page": 1,
+  "tags": [
+    {
+      "id": "special.note_time_desc",
+      "name": "所有笔记",
+      "notes_count": 42,
+      "checked": true
+    },
+    {
+      "notes_count": 2,
+      "checked": false,
+      "id": "special.video",
+      "name": "视频"
+    }
+  ],
+  "notes": [
+    {
+      "id": "698eff2a000000000a03dced",
+      "display_title": "示例笔记一",
+      "type": "normal",
+      "shared_count": 3,
+      "comments_count": 0,
+      "tab_status": 1,
+      "xsec_token": "XSEC_TOKEN_REDACTED",
+      "goods_info": {
+        "goods_name": []
+      },
+      "collected_count": 0,
+      "cocreate": false,
+      "visible_time": 1770979160,
+      "schedule_post_time": 0,
+      "time": "2026-02-13 18:38",
+      "sticky": true,
+      "permission_msg": "",
+      "xsec_source": "pc_creatormng",
+      "pk_cover_status": 0,
+      "ref_tip": 2,
+      "likes": 1,
+      "view_count": 6,
+      "images_list": [
+        {
+          "url": "https://img.example.invalid/redacted.jpg"
+        },
+        {
+          "url": "https://img.example.invalid/redacted.jpg"
+        },
+        {
+          "url": "https://img.example.invalid/redacted.jpg"
+        }
+      ],
+      "permission_code": 0
+    },
+    {
+      "id": "6abbe0ef000000001203e9c7",
+      "view_count": 19,
+      "permission_code": 0,
+      "schedule_post_time": 0,
+      "pk_cover_status": 0,
+      "likes": 0,
+      "collected_count": 0,
+      "display_title": "示例笔记二",
+      "sticky": false,
+      "permission_msg": "",
+      "tab_status": 1,
+      "xsec_token": "XSEC_TOKEN_REDACTED",
+      "goods_info": {
+        "goods_name": []
+      },
+      "cocreate": false,
+      "time": "2026-09-30 00:01",
+      "type": "normal",
+      "shared_count": 0,
+      "comments_count": 0,
+      "images_list": [
+        {
+          "url": "https://img.example.invalid/redacted.jpg"
+        },
+        {
+          "url": "https://img.example.invalid/redacted.jpg"
+        },
+        {
+          "url": "https://img.example.invalid/redacted.jpg"
+        }
+      ],
+      "xsec_source": "pc_creatormng",
+      "visible_time": 1790697759,
+      "ref_tip": 0
+    },
+    {
+      "view_count": 267,
+      "collected_count": 0,
+      "likes": 0,
+      "goods_info": {
+        "goods_name": []
+      },
+      "cocreate": false,
+      "pk_cover_status": 0,
+      "id": "69918bba000000000e03d6c0",
+      "type": "normal",
+      "sticky": false,
+      "permission_code": 0,
+      "permission_msg": "",
+      "xsec_token": "XSEC_TOKEN_REDACTED",
+      "xsec_source": "pc_creatormng",
+      "visible_time": 1771146222,
+      "shared_count": 0,
+      "comments_count": 2,
+      "images_list": [
+        {
+          "url": "https://img.example.invalid/redacted.jpg"
+        },
+        {
+          "url": "https://img.example.invalid/redacted.jpg"
+        }
+      ],
+      "schedule_post_time": 0,
+      "tab_status": 1,
+      "ref_tip": 0,
+      "display_title": "示例笔记三",
+      "time": "2026-02-15 17:02"
+    }
+  ]
+}

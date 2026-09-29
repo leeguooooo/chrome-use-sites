@@ -1,0 +1,9 @@
+{
+  "_fixture": "GET /api/galaxy/creator/datacenter/note/audience/source/detail, transform:true, for a note under the 50-viewer threshold.",
+  "noData": true,
+  "noDataTipMsg": "数据统计中，请稍后查看",
+  "gender": [],
+  "age": [],
+  "city": [],
+  "interest": []
+}
