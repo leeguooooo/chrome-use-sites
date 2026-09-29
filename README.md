@@ -226,6 +226,43 @@ center by hand.
   `published_at` adds `+08:00`. `note-stats` uses the epoch `postTime`, so it
   has seconds too.
 
+### `*/article-publish` — cross-post a Markdown article to Chinese dev platforms
+
+One command per platform publishes a Markdown article as the account signed in
+there, or saves a draft only. They write to your real account.
+
+```sh
+T="My title"; S="One-paragraph summary"; TAGS="Claude,Codex,AI编程,人工智能,开源"
+chrome-use site juejin/article-publish       --title "$T" --markdown "$(cat post.md)" --summary "$S" --tags "$TAGS" --category 人工智能
+chrome-use site csdn/article-publish         --title "$T" --markdown "$(cat post.md)" --summary "$S" --tags "$TAGS"
+chrome-use site segmentfault/article-publish --title "$T" --markdown "$(cat post.md)" --tags "$TAGS"
+chrome-use site zhihu/article-publish        --title "$T" --markdown "$(cat post.md)" --tags "Claude,AI编程,开源"
+# add --draft true to any of them to stop after the draft
+```
+
+Common args: `title`, `markdown` (the whole body; adapter args are inline
+strings, so pass a file with `"$(cat post.md)"`), `summary`, `tags`
+(comma-separated), `draft`. Every adapter returns
+`{ok, id, url, status, tags, skipped_tags}` or `{error, hint}`.
+
+| adapter | extra args | how it posts |
+| --- | --- | --- |
+| `juejin/article-publish` | `--category` (name or id; required to publish) | `api.juejin.cn` `content_api/v1/article_draft/create` (`mark_content`, `edit_type` 10) then `article/publish {draft_id}`. Tag and category names are resolved through `tag_api/v1/query_tag_list` / `query_category_list`; max 3 tags. `brief_content` must be 50-100 characters to publish; without `--summary` it is cut from the body. |
+| `csdn/article-publish` | `--category` (your 分类专栏), `--html`, `--id` (overwrite an existing article, e.g. an editor autosave) | `bizapi.csdn.net/blog-console-api/v3/mdeditor/saveArticle` as 原创, public, status 0 (publish) or 2 (draft), with `markdowncontent` plus HTML rendered by the adapter. The x-ca-* signatures come from the editor's own request client: the adapter borrows it from `editor.csdn.net/md/`, in a hidden same-origin frame when the tab is elsewhere. Accounts below blog level 3 cannot create tags; unknown tags are skipped. |
+| `segmentfault/article-publish` | `--type` 原创/转载/翻译, `--source_url` | The page's own Api object (token header, signed GETs): `POST /gateway/draft`, then `POST /gateway/article` with the draft id. New accounts' articles go to manual review (up to four hours): `status` is then `in_review` and `message` says so. A `scene_id` (captcha) stops the run with the draft kept. |
+| `zhihu/article-publish` | `--html` | `zhuanlan.zhihu.com/api/articles/drafts` (+ `PATCH …/draft`), topics bound via `…/topics` (max 3, from `autocomplete/topics`), then `www.zhihu.com/api/v4/content/publish` with `action: "article"`. Requests go through Zhihu's own fetch wrapper (xsrf + x-zse headers). Markdown is converted to Zhihu's HTML (h2/h3, `<pre lang>`). |
+
+Tags are matched by exact name (then case-insensitively) against what the
+platform already has, never by nearest neighbour, so a typo is reported in
+`skipped_tags` instead of tagging the article with something unrelated.
+Publishing needs at least one tag that exists.
+
+**Risk.** One run = one article. If a publish step fails after the draft was
+saved, the adapter returns the draft id and says so; do not re-run (you would
+get a second draft), finish it in the site's editor. Check your article list
+before re-posting something. Captchas, SMS or real-name checks are reported and
+never worked around. Test with `--draft true` and delete the draft afterwards.
+
 ## Adding an adapter
 
 Drop `packname/command.js` in this repo and follow the shape of the existing files. Current chrome-use versions discover `.js` adapters directly from the repository tree. Also add the path to `PACKS` in `install.sh` while the legacy v1.5.77 installer remains supported.

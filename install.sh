@@ -3,8 +3,9 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/leeguooooo/chrome-use-sites/main/install.sh | sh
 #
-# Installs every adapter pack in this repo (currently: sggit, twitter, chatgpt
-# and xiaohongshu-creator). Custom adapters
+# Installs every adapter pack in this repo (currently: sggit, twitter, chatgpt,
+# xiaohongshu-creator, and article-publish for juejin, csdn, segmentfault and
+# zhihu). Custom adapters
 # under ~/.chrome-use/sites/ survive `chrome-use site update` (it merges the
 # community pack, it does not wipe the dir), so these stay put.
 set -eu
@@ -19,7 +20,9 @@ PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js t
 chatgpt/_helper.js chatgpt/me.js chatgpt/conversations.js chatgpt/projects.js
 chatgpt/models.js chatgpt/conversation.js chatgpt/open-project.js
 xiaohongshu-creator/_helper.js xiaohongshu-creator/me.js xiaohongshu-creator/notes.js
-xiaohongshu-creator/note-stats.js"
+xiaohongshu-creator/note-stats.js
+juejin/article-publish.js csdn/article-publish.js segmentfault/article-publish.js
+zhihu/article-publish.js"
 
 # Files a pack needs that live in another repo. The twitter adapters call
 # findGraphQLQueryId / findTransactionIdGenerator, which are defined in the
@@ -46,7 +49,7 @@ done
 
 echo "✓ done"
 echo
-echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator)/'"
+echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|juejin|csdn|segmentfault|zhihu)/'"
 echo "Try:     chrome-use site twitter/search \"chrome-use\""
 echo
 echo "Note: adapters run in YOUR logged-in browser tab, so you must be"
