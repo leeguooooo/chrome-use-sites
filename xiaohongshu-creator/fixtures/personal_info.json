@@ -1,0 +1,21 @@
+{
+  "_fixture": "GET /api/galaxy/creator/home/personal_info, transform:true. Captured 2026-09-30; identity fields redacted.",
+  "name": "测试创作者",
+  "avatar": "https://img.xiaohongshu.com/avatar/REDACTED.jpg",
+  "followCount": 121,
+  "fansCount": 130,
+  "favedCount": 1097,
+  "redNum": "000000000",
+  "personalDesc": "",
+  "diagnosisStatus": 1,
+  "liveInfo": {
+    "liveStatus": 0,
+    "liveDataLink": null
+  },
+  "growInfo": {
+    "level": 1,
+    "fansCount": 130,
+    "maxFansCount": 500,
+    "minFansCount": 0
+  }
+}
