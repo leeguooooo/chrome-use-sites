@@ -5,7 +5,7 @@
   "domain": "segmentfault.com",
   "args": {
     "title": {"required": true, "description": "Article title"},
-    "markdown": {"required": true, "description": "Full Markdown body (pass a file with --markdown \"$(cat post.md)\")"},
+    "markdown": {"required": true, "description": "Full Markdown body (pass a file with --markdown @post.md)"},
     "summary": {"required": false, "description": "Ignored: SegmentFault builds the excerpt from the body. Accepted so one command line works for every platform"},
     "tags": {"required": false, "description": "Comma-separated tag names. Only tags SegmentFault already has are used (max 5); the rest come back in skipped_tags. Publishing needs at least one"},
     "type": {"required": false, "description": "原创 (default), 转载 or 翻译"},
@@ -14,7 +14,7 @@
   },
   "capabilities": ["network"],
   "readOnly": false,
-  "example": "chrome-use site segmentfault/article-publish --title \"Hello\" --markdown \"$(cat post.md)\" --tags \"claude,codex,开源\" --draft true"
+  "example": "chrome-use site segmentfault/article-publish --title \"Hello\" --markdown @post.md --tags \"claude,codex,开源\" --draft true"
 }
 */
 

@@ -238,6 +238,106 @@ test('says to upload first when the dialog is still on file selection', async ()
   assert.match(r.hint, /UC0000000000000000000000\/videos\/upload\?d=ud/)
 })
 
+// ---- --video (a local file handed over by chrome-use 1.5.149+) ---------------
+
+// What chrome-use puts in args for a "type": "file" arg.
+const localVideo = (env, calls, onAttach) => ({
+  path: '/abs/clip.mp4',
+  name: 'clip.mp4',
+  size: 14000000,
+  setOn: async (selector) => {
+    calls.push(selector)
+    const input = env.body.querySelector(selector)
+    assert.ok(input, 'setOn must name an element that exists: ' + selector)
+    input.files = [{ name: 'clip.mp4' }]
+    if (onAttach) onAttach()
+    return { attached: 1 }
+  },
+})
+
+test('--video on a channel page without the dialog: opens the upload dialog URL', async () => {
+  const page = createPage({ html: '<div>内容</div>', url: 'https://studio.youtube.com/channel/UC0000000000000000000000/videos' })
+  const calls = []
+  const r = await run(page, { ...FULL, video: localVideo(page, calls) })
+  assert.equal(r.status, 'incomplete')
+  assert.equal(r.stopped_at, 'open-upload')
+  assert.equal(page.window.location.href, UPLOAD_URL)
+  assert.deepEqual(calls, [])
+})
+
+test('--video on a page that names no channel is an error, and never an edit', async () => {
+  const env = editPage('PRIVATE')
+  const calls = []
+  const r = await run(env, { visibility: 'public', video: localVideo(env, calls) })
+  assert.match(r.error, /which channel/)
+  assert.match(r.hint, /studio\.youtube\.com/)
+  assert.deepEqual(calls, [])
+})
+
+test('--video on file selection: hands the file to the dialog input', async () => {
+  const page = createPage({ html: fixture('upload-page.html'), url: UPLOAD_URL })
+  const calls = []
+  const notes = []
+  const r = await run(page, { ...FULL, video: localVideo(page, calls), progress: (m) => notes.push(m) })
+  assert.deepEqual(calls, ['ytcp-uploads-dialog input[type="file"]'])
+  assert.equal(page.body.querySelector('input[type="file"]').files.length, 1)
+  assert.deepEqual(notes, ['uploading clip.mp4'])
+  // The stub never assigns a video id, so the run stops there and can be rerun.
+  assert.equal(r.status, 'incomplete')
+  assert.equal(r.stopped_at, 'upload')
+})
+
+test('--video with an upload already in the dialog: nothing is uploaded again', async () => {
+  const env = studio({ progress: 'uploading' })
+  const calls = []
+  const r = await run(env, { ...FULL, video: localVideo(env, calls) })
+  assert.deepEqual(calls, [])
+  assert.equal(r.status, 'uploading')
+  assert.equal(env.st.title, FULL.title)
+})
+
+const tabStorage = () => {
+  const m = new Map()
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) }
+}
+
+test('--video: a rerun while Studio is still taking the file in does not attach it twice', async () => {
+  const page = createPage({ html: fixture('upload-page.html'), url: UPLOAD_URL })
+  const calls = []
+  const args = { ...FULL, video: localVideo(page, calls) }
+  assert.equal((await run(page, args)).stopped_at, 'upload')
+  const again = await run(page, args)
+  assert.equal(again.status, 'incomplete')
+  assert.equal(again.stopped_at, 'upload')
+  assert.equal(calls.length, 1)
+})
+
+test('--video: a rerun after publish was clicked does not upload the file again', async () => {
+  const session = tabStorage()
+  const env = studio()
+  env.window.sessionStorage = session
+  const calls = []
+  const done = await run(env, { ...FULL, video: localVideo(env, calls) })
+  assert.ok(env.log.published, JSON.stringify(done))
+  assert.ok(session.getItem('cu-youtube-published'))
+
+  // The dialog is gone; the tab is back on the channel's content page.
+  const after = createPage({ html: '<div>内容</div>', url: 'https://studio.youtube.com/channel/UC0000000000000000000000/videos' })
+  after.window.sessionStorage = session
+  const r = await run(after, { ...FULL, video: localVideo(after, calls) })
+  assert.equal(r.status, 'publish_clicked')
+  assert.match(r.hint, /not uploaded again/)
+  assert.equal(after.window.location.href, 'https://studio.youtube.com/channel/UC0000000000000000000000/videos')
+  assert.deepEqual(calls, [])
+})
+
+test('--video from a chrome-use without file args says to upgrade', async () => {
+  const page = createPage({ html: fixture('upload-page.html'), url: UPLOAD_URL })
+  const r = await run(page, { ...FULL, video: './clip.mp4' })
+  assert.match(r.error, /1\.5\.149/)
+  assert.match(r.hint, /chrome-use upgrade/)
+})
+
 test('stops on a captcha / identity check', async () => {
   const r = await run(studio({ captcha: true }), FULL)
   assert.match(r.error, /verification/)

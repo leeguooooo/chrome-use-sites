@@ -5,7 +5,7 @@
   "domain": "zhuanlan.zhihu.com",
   "args": {
     "title": {"required": true, "description": "Article title"},
-    "markdown": {"required": true, "description": "Full Markdown body (pass a file with --markdown \"$(cat post.md)\"); converted to Zhihu's HTML by the adapter"},
+    "markdown": {"required": true, "description": "Full Markdown body (pass a file with --markdown @post.md); converted to Zhihu's HTML by the adapter"},
     "summary": {"required": false, "description": "Ignored: Zhihu builds the excerpt from the body. Accepted so one command line works for every platform"},
     "tags": {"required": false, "description": "Comma-separated topic (话题) names. Only topics Zhihu already has are bound (max 3); the rest come back in skipped_tags. Publishing needs at least one"},
     "html": {"required": false, "description": "Ready-made HTML body; overrides the markdown conversion"},
@@ -13,7 +13,7 @@
   },
   "capabilities": ["network"],
   "readOnly": false,
-  "example": "chrome-use site zhihu/article-publish --title \"Hello\" --markdown \"$(cat post.md)\" --tags \"Claude,AI编程,开源\" --draft true"
+  "example": "chrome-use site zhihu/article-publish --title \"Hello\" --markdown @post.md --tags \"Claude,AI编程,开源\" --draft true"
 }
 */
 

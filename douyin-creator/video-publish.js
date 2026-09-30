@@ -1,9 +1,12 @@
 /* @meta
 {
   "name": "douyin-creator/video-publish",
-  "description": "Fill in and publish (or save as a draft) a video on Douyin's creator center, after the file was uploaded on the upload page",
+  "description": "Upload a local video (--video), fill in and publish (or save as a draft) on Douyin's creator center. One command with --until-done; without --video it fills in a video already uploaded on the upload page",
+  "timeout": 600,
+  "retryStatuses": ["incomplete", "uploading", "upload_started"],
   "domain": "creator.douyin.com",
   "args": {
+    "video": {"required": false, "type": "file", "input": "input[type=file]", "description": "Local video file to upload (needs chrome-use 1.5.149+). The adapter opens the upload page and hands the file to it; use with --until-done, since Douyin navigates to the post page once the upload starts"},
     "title": {"required": false, "description": "作品标题, at most 30 characters. Required unless --video_url is given"},
     "description": {"required": false, "description": "作品简介, at most 1000 characters. Newlines start new lines"},
     "topics": {"required": false, "description": "Comma-separated topic names without #, e.g. \"AI编程,ClaudeCode\". Only topics Douyin already has (exact name, then case-insensitive) are added; the rest come back in skipped_topics"},
@@ -14,7 +17,7 @@
   },
   "capabilities": ["dom"],
   "readOnly": false,
-  "example": "chrome-use site douyin-creator/video-publish --title \"Hello\" --description \"$(cat desc.txt)\" --topics \"AI编程,ClaudeCode\" --declaration ai --visibility private --draft true"
+  "example": "chrome-use site douyin-creator/video-publish --video ./clip.mp4 --title \"Hello\" --description @desc.txt --topics \"AI编程,ClaudeCode\" --declaration ai --visibility private --draft true --until-done"
 }
 */
 
@@ -22,11 +25,12 @@ async function(args) {
   args = args || {}
   const W = window
   const D = document
-  // chrome-use abandons an evaluation after ~8 s. Every wait below draws on
-  // this budget, and the run stops at a safe point with status "incomplete"
-  // instead of being cut off mid-click.
+  // Every wait below draws on this budget, and the run stops at a safe point
+  // with status "incomplete" instead of being cut off mid-click. chrome-use
+  // 1.5.149+ says how long the run has (args.budgetMs); older versions abandon
+  // an evaluation after ~8 s.
   const START = Date.now()
-  const BUDGET_MS = 7000
+  const BUDGET_MS = args.budgetMs > 0 ? Math.max(7000, args.budgetMs - 2000) : 7000
   const left = () => BUDGET_MS - (Date.now() - START)
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
   const truthy = (v) => /^(1|true|yes|y|on)$/i.test(String(v == null ? '' : v).trim())
@@ -44,6 +48,7 @@ async function(args) {
     none: '无需添加自主声明',
   }
   const VISIBILITY = { public: '公开', friends: '好友可见', private: '仅自己可见' }
+  const UPLOAD_URL = 'https://creator.douyin.com/creator-micro/content/upload'
   const path = String(W.location.pathname || '')
   const onUpload = /\/content\/upload/.test(path)
   const onPost = /\/content\/post\/video/.test(path)
@@ -136,14 +141,77 @@ async function(args) {
   if (!VISIBILITY[visKey]) return { error: 'Unknown visibility: ' + args.visibility, hint: 'Use public, friends or private.' }
   const draft = truthy(args.draft)
 
+  // --video is a local file chrome-use hands over: {path, name, size, setOn}.
+  // An older chrome-use passes the path as a plain string and cannot attach it.
+  const localFile = args.video && typeof args.video === 'object' && typeof args.video.setOn === 'function' ? args.video : null
+  if (args.video && !localFile) {
+    return {
+      error: '--video needs chrome-use 1.5.149 or newer',
+      hint: 'Run chrome-use upgrade. Or upload first: chrome-use upload \'input[type=file]\' ./video.mp4, then run this without --video.',
+    }
+  }
+  const progress = (m) => { if (typeof args.progress === 'function') args.progress(m) }
+  // With --until-done a run that is lost right after the final click (the page
+  // navigating away) is run again, and that rerun no longer sees the form. It
+  // must not upload the same file a second time and publish it twice.
+  const fileStamp = localFile ? localFile.name + '|' + localFile.size : ''
+  const PUB_MARK = 'cu-douyin-published'
+  const markPublishClick = () => {
+    if (!localFile) return
+    try { W.sessionStorage.setItem(PUB_MARK, JSON.stringify({ file: fileStamp, at: Date.now() })) } catch (_) {}
+  }
+  const publishClickedRecently = () => {
+    try {
+      const m = JSON.parse(W.sessionStorage.getItem(PUB_MARK) || 'null')
+      return m && m.file === fileStamp && Date.now() - m.at < 900000 ? m : null
+    } catch (_) { return null }
+  }
+  const ALREADY_CLICKED = (m) => ({
+    ok: false,
+    status: 'publish_clicked',
+    hint: 'A run in this tab already clicked publish for ' + localFile.name + ' ' + Math.round((Date.now() - m.at) / 1000) +
+      ' s ago, so the file is not uploaded again. Check the content page. To publish the same file again, use a new tab.',
+  })
+
   if (!onPost) {
     if (/login|passport/.test(W.location.href) || all('input[type="file"]').length === 0 && /登录|扫码/.test(text(D.body).slice(0, 400))) {
       return { error: 'Not signed in to creator.douyin.com', hint: 'Log in at https://creator.douyin.com in this browser, then retry.' }
     }
+    if (localFile) {
+      const RERUN = 'Run the same command again to continue (--until-done does it for you).'
+      const clicked = publishClickedRecently()
+      if (clicked) return ALREADY_CLICKED(clicked)
+      if (!onUpload) {
+        progress('opening the upload page')
+        W.location.href = UPLOAD_URL
+        return { ok: true, status: 'incomplete', step: 'open-upload', hint: RERUN }
+      }
+      if (captcha()) return CAPTCHA
+      // Douyin moves to /content/post/video once the upload starts. A rerun
+      // that still lands here must wait for that, not hand the file over twice.
+      const MARK = 'cu-douyin-upload'
+      let prev = null
+      try { prev = JSON.parse(W.sessionStorage.getItem(MARK) || 'null') } catch (_) { prev = null }
+      if (!(prev && prev.file === fileStamp && Date.now() - prev.at < 120000)) {
+        const input = await waitFor(() => all('input[type="file"]').find((i) => /video|\.mp4/i.test(i.getAttribute('accept') || '')), 5000)
+        if (!input) return { error: 'No video file input on the upload page', hint: 'The upload page changed; upload with chrome-use upload instead.' }
+        input.setAttribute('data-cu-file', 'video')
+        progress('uploading ' + localFile.name)
+        try {
+          await localFile.setOn('input[data-cu-file="video"]')
+        } catch (e) {
+          return { error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e) }
+        }
+        try { W.sessionStorage.setItem(MARK, JSON.stringify({ file: fileStamp, at: Date.now() })) } catch (_) {}
+      }
+      // The navigation ends this run; if it is slow, say so and let the rerun pick it up.
+      await waitFor(() => false, 4000, 200)
+      return { ok: true, status: 'incomplete', step: 'upload', file: localFile.name, size: localFile.size, hint: 'The upload started and the page moves to /content/post/video. ' + RERUN }
+    }
     return {
       error: onUpload ? 'No video uploaded yet' : 'Not on the video post page (' + path + ')',
       hint: 'First: chrome-use open https://creator.douyin.com/creator-micro/content/upload && ' +
-        'chrome-use upload \'input[type=file]\' ./video.mp4 (or run this adapter there with --video_url), then run this again.',
+        'chrome-use upload \'input[type=file]\' ./video.mp4, then run this again. With chrome-use 1.5.149+ pass --video ./video.mp4 --until-done instead.',
     }
   }
   if (captcha()) return CAPTCHA
@@ -410,6 +478,7 @@ async function(args) {
   if (!button) return { error: 'No 「' + label + '」 button on the page', hint: 'The post page changed; this adapter needs updating.' }
   const toasts = () => all('.semi-toast-content-text, [class*="toast-content"]').map(text).filter(Boolean)
   const toastsBefore = toasts()
+  if (!draft) markPublishClick()
   click(button)
   const base = { title, topics, skipped_topics: skipped, declaration, visibility: VISIBILITY[visKey], warnings }
   const outcome = await waitFor(() => {
@@ -419,7 +488,7 @@ async function(args) {
     const bad = fresh.find((t) => /请|失败|不能|错误|超过|最少|至少|上传中/.test(t))
     if (bad) return { toast: bad }
     return null
-  }, Math.max(500, left() - 300), 100)
+  }, Math.min(20000, Math.max(500, left() - 300)), 100)
   if (outcome && outcome.captcha) return CAPTCHA
   if (outcome && outcome.toast) {
     return Object.assign({ error: 'Douyin refused: ' + outcome.toast, hint: 'Fix it on the page (or in the arguments) and run again.' }, base)

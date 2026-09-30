@@ -1,9 +1,12 @@
 /* @meta
 {
   "name": "youtube-studio/video-upload",
-  "description": "Fill in YouTube Studio's upload dialog (details, advanced settings, visibility) and publish, after the file was handed to the upload page",
+  "description": "Upload a local video (--video), fill in YouTube Studio's upload dialog (details, advanced settings, visibility) and publish. One command with --until-done; without --video it fills in a dialog the file was already handed to",
+  "timeout": 1800,
+  "retryStatuses": ["incomplete", "uploading", "processing", "checking"],
   "domain": "studio.youtube.com",
   "args": {
+    "video": {"required": false, "type": "file", "input": "ytcp-uploads-dialog input[type=file]", "description": "Local video file to upload (needs chrome-use 1.5.149+). The adapter opens the channel's upload dialog and hands the file to it; use with --until-done so the run waits for the upload, processing and checks"},
     "title": {"required": false, "description": "Video title, at most 100 characters, no < or >. Omit to keep what Studio has (the file name on a fresh upload)"},
     "description": {"required": false, "description": "Description, at most 5000 characters, no < or >. Newlines are kept"},
     "visibility": {"required": false, "description": "private (default) | unlisted | public"},
@@ -18,7 +21,7 @@
   },
   "capabilities": ["dom"],
   "readOnly": false,
-  "example": "chrome-use site youtube-studio/video-upload --title \"Hello\" --description \"$(cat desc.txt)\" --visibility private --made_for_kids false --ai_altered no --category 科学和技术 --tags \"a,b\" --language zh-Hans"
+  "example": "chrome-use site youtube-studio/video-upload --video ./clip.mp4 --until-done --title \"Hello\" --description @desc.txt --visibility private --made_for_kids false --ai_altered no --category 科学和技术 --tags \"a,b\" --language zh-Hans"
 }
 */
 
@@ -26,12 +29,13 @@ async function(args) {
   args = args || {}
   const W = window
   const D = document
-  // chrome-use abandons an evaluation after ~8 s. Every wait draws on this
-  // budget; the run stops at a safe point with status "incomplete" instead of
-  // being cut off mid-click. Every step checks before it acts, so a re-run
-  // with the same arguments picks up where the last one stopped.
+  // Every wait draws on this budget; the run stops at a safe point with status
+  // "incomplete" instead of being cut off mid-click. Every step checks before
+  // it acts, so a re-run with the same arguments picks up where the last one
+  // stopped. chrome-use 1.5.149+ says how long the run has (args.budgetMs);
+  // older versions abandon an evaluation after ~8 s.
   const START = Date.now()
-  const BUDGET_MS = 7000
+  const BUDGET_MS = args.budgetMs > 0 ? Math.max(7000, args.budgetMs - 2000) : 7000
   const left = () => BUDGET_MS - (Date.now() - START)
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
   const clean = (s) => String(s == null ? '' : s).replace(/[​ ]/g, ' ').replace(/\s+/g, ' ').trim()
@@ -145,7 +149,7 @@ async function(args) {
     if (enabled(saveBtn())) {
       if (verification()) return VERIFY
       click(saveBtn())
-      const saved = await waitFor(() => !enabled(saveBtn()), Math.max(500, left() - 300), 100)
+      const saved = await waitFor(() => !enabled(saveBtn()), Math.min(20000, Math.max(500, left() - 300)), 100)
       if (!saved) return { ok: false, status: 'save_clicked', url, visibility: visKey, warnings, hint: 'Clicked 保存 but it did not settle in time; reload the edit page and check.' }
       return { ok: true, status: 'visibility_changed', from: was, url, visibility: visKey, warnings }
     }
@@ -166,25 +170,111 @@ async function(args) {
 
   const channel = (String(W.location.pathname || '').match(/\/channel\/(UC[\w-]+)/) || [])[1]
   const uploadUrl = 'https://studio.youtube.com/channel/' + (channel || '<channel id>') + '/videos/upload?d=ud'
-  const dialog = D.querySelector('ytcp-uploads-dialog')
-  const paper = dialog && dialog.querySelector('tp-yt-paper-dialog')
+  let dialog = D.querySelector('ytcp-uploads-dialog')
+  let paper = dialog && dialog.querySelector('tp-yt-paper-dialog')
+  // Re-reads the dialog, which Studio may mount after this run started.
+  const isOpenNow = () => {
+    dialog = D.querySelector('ytcp-uploads-dialog')
+    paper = dialog && dialog.querySelector('tp-yt-paper-dialog')
+    return !!(paper && shown(paper) && dialog.getAttribute('workflow-step'))
+  }
   const isOpen = () => !!(paper && shown(paper) && dialog.getAttribute('workflow-step'))
+
+  // --video is a local file chrome-use hands over: {path, name, size, setOn}.
+  // An older chrome-use passes the path as a plain string and cannot attach it.
+  const localFile = args.video && typeof args.video === 'object' && typeof args.video.setOn === 'function' ? args.video : null
+  if (args.video && !localFile) {
+    return {
+      error: '--video needs chrome-use 1.5.149 or newer',
+      hint: 'Run chrome-use upgrade. Or upload first: chrome-use upload \'input[type=file]\' ./video.mp4, then run this without --video.',
+    }
+  }
+  const note = (m) => { if (typeof args.progress === 'function') args.progress(m) }
+  // With --until-done a run that is lost right after the final click (the page
+  // navigating away) is run again, and that rerun no longer sees the form. It
+  // must not upload the same file a second time and publish it twice.
+  const fileStamp = localFile ? localFile.name + '|' + localFile.size : ''
+  const PUB_MARK = 'cu-youtube-published'
+  const markPublishClick = () => {
+    if (!localFile) return
+    try { W.sessionStorage.setItem(PUB_MARK, JSON.stringify({ file: fileStamp, at: Date.now() })) } catch (_) {}
+  }
+  const publishClickedRecently = () => {
+    try {
+      const m = JSON.parse(W.sessionStorage.getItem(PUB_MARK) || 'null')
+      return m && m.file === fileStamp && Date.now() - m.at < 900000 ? m : null
+    } catch (_) { return null }
+  }
+  const ALREADY_CLICKED = (m) => ({
+    ok: false,
+    status: 'publish_clicked',
+    hint: 'A run in this tab already clicked publish for ' + localFile.name + ' ' + Math.round((Date.now() - m.at) / 1000) +
+      ' s ago, so the file is not uploaded again. Check the content page. To publish the same file again, use a new tab.',
+  })
+  let justAttached = false
+  if (localFile && !(isOpen() && dialog.getAttribute('video-id'))) {
+    const RERUN = 'Run the same command again to continue (--until-done does it for you).'
+    const clicked = publishClickedRecently()
+    if (clicked) return ALREADY_CLICKED(clicked)
+    if (/accounts\.google\.com|ServiceLogin/.test(String(W.location.href))) {
+      return { error: 'Not signed in to YouTube Studio', hint: 'Sign in at https://studio.youtube.com in this browser, then retry.' }
+    }
+    if (!isOpen()) {
+      // The upload dialog lives at the channel's /videos/upload?d=ud.
+      if (!channel) {
+        return {
+          error: 'Cannot tell which channel to upload to from this page (' + W.location.pathname + ')',
+          hint: 'Open https://studio.youtube.com (it lands on /channel/UC…), then run this again.',
+        }
+      }
+      if (/\/videos\/upload/.test(String(W.location.pathname)) && /[?&]d=ud/.test(String(W.location.search))) {
+        // Already there: the dialog is still mounting.
+        const up = await waitFor(() => isOpenNow(), 6000, 150)
+        if (!up) return { ok: true, status: 'incomplete', stopped_at: 'open-upload', hint: 'The upload dialog has not opened yet. ' + RERUN }
+      } else {
+        note('opening the upload dialog')
+        W.location.href = uploadUrl
+        return { ok: true, status: 'incomplete', stopped_at: 'open-upload', hint: RERUN }
+      }
+    }
+    const live = D.querySelector('ytcp-uploads-dialog')
+    if (live && live.getAttribute('workflow-step') === 'SELECT_FILES' && !live.getAttribute('video-id')) {
+      const SEL = 'ytcp-uploads-dialog input[type="file"]'
+      if (!D.querySelector(SEL)) return { error: 'No file input in the upload dialog', hint: 'Studio changed; upload with chrome-use upload instead.' }
+      // A rerun can find the dialog still on file selection while Studio is
+      // taking the file in. It waits again; it does not hand the file over twice.
+      if (live.__cuAttached !== fileStamp) {
+        note('uploading ' + localFile.name)
+        try {
+          await localFile.setOn(SEL)
+        } catch (e) {
+          return { error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e) }
+        }
+        live.__cuAttached = fileStamp
+      }
+      justAttached = true
+    }
+  }
   // Right after `chrome-use upload` the dialog still says SELECT_FILES and
   // has no video-id for a moment (seen live); give it a couple of seconds.
   if (isOpen() && (dialog.getAttribute('workflow-step') === 'SELECT_FILES' || !dialog.getAttribute('video-id'))) {
-    await waitFor(() => dialog.getAttribute('workflow-step') !== 'SELECT_FILES' && dialog.getAttribute('video-id'), 3000, 150)
+    await waitFor(() => dialog.getAttribute('workflow-step') !== 'SELECT_FILES' && dialog.getAttribute('video-id'), justAttached ? 20000 : 3000, 150)
   }
   const step = dialog && dialog.getAttribute('workflow-step')
   const videoId = dialog && dialog.getAttribute('video-id')
   const editId = (String(W.location.pathname || '').match(/^\/video\/([\w-]{11})\/edit/) || [])[1]
   if (editId && !isOpen()) return editVisibility(editId)
+  if (justAttached && (step === 'SELECT_FILES' || !videoId)) {
+    return { ok: true, status: 'incomplete', stopped_at: 'upload', file: localFile.name, size: localFile.size, hint: 'The file was handed over but Studio has not assigned a video id yet. Run the same command again to continue (--until-done does it for you).' }
+  }
   if (!isOpen() || step === 'SELECT_FILES' || !videoId) {
     if (/accounts\.google\.com|ServiceLogin/.test(String(W.location.href))) {
       return { error: 'Not signed in to YouTube Studio', hint: 'Sign in at https://studio.youtube.com in this browser, then retry.' }
     }
     return {
       error: step === 'SELECT_FILES' ? 'No video uploaded yet' : 'No open upload dialog on this page',
-      hint: 'First: chrome-use open \'' + uploadUrl + '\' && chrome-use upload \'input[type=file]\' ./video.mp4, then run this again. ' +
+      hint: 'First: chrome-use open \'' + uploadUrl + '\' && chrome-use upload \'input[type=file]\' ./video.mp4, then run this again ' +
+        '(with chrome-use 1.5.149+ pass --video ./video.mp4 --until-done instead). ' +
         'If a run already clicked publish, the dialog is gone: check the Content page instead of re-running.',
     }
   }
@@ -489,6 +579,7 @@ async function(args) {
     return { error: 'The publish button is disabled', url, done, warnings }
   }
   const base = { url, visibility: visKey, title: title, warnings }
+  markPublishClick()
   click(doneBtn)
   const outcome = await waitFor(() => {
     if (verification()) return { verify: true }
@@ -498,7 +589,7 @@ async function(args) {
       /仍在检查|仍在处理|still (checking|processing)/i.test(text(m)))
     if (confirm) return { confirm: text(confirm).slice(0, 200) }
     return null
-  }, Math.max(500, left() - 300), 100)
+  }, Math.min(20000, Math.max(500, left() - 300)), 100)
   if (outcome && outcome.verify) return VERIFY
   if (outcome && outcome.confirm) {
     return Object.assign({ ok: false, status: 'confirm_needed', done, hint: 'Studio asks: ' + outcome.confirm + ' Answer it by hand.' }, base)
