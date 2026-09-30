@@ -233,15 +233,15 @@ there, or saves a draft only. They write to your real account.
 
 ```sh
 T="My title"; S="One-paragraph summary"; TAGS="Claude,Codex,AI编程,人工智能,开源"
-chrome-use site juejin/article-publish       --title "$T" --markdown "$(cat post.md)" --summary "$S" --tags "$TAGS" --category 人工智能
-chrome-use site csdn/article-publish         --title "$T" --markdown "$(cat post.md)" --summary "$S" --tags "$TAGS"
-chrome-use site segmentfault/article-publish --title "$T" --markdown "$(cat post.md)" --tags "$TAGS"
-chrome-use site zhihu/article-publish        --title "$T" --markdown "$(cat post.md)" --tags "Claude,AI编程,开源"
+chrome-use site juejin/article-publish       --title "$T" --markdown @post.md --summary "$S" --tags "$TAGS" --category 人工智能
+chrome-use site csdn/article-publish         --title "$T" --markdown @post.md --summary "$S" --tags "$TAGS"
+chrome-use site segmentfault/article-publish --title "$T" --markdown @post.md --tags "$TAGS"
+chrome-use site zhihu/article-publish        --title "$T" --markdown @post.md --tags "Claude,AI编程,开源"
 # add --draft true to any of them to stop after the draft
 ```
 
 Common args: `title`, `markdown` (the whole body; adapter args are inline
-strings, so pass a file with `"$(cat post.md)"`), `summary`, `tags`
+strings, so pass a file with `--markdown @post.md`, or `@-` for stdin; chrome-use before 1.5.149 needs `"$(cat post.md)"`), `summary`, `tags`
 (comma-separated), `draft`. Every adapter returns
 `{ok, id, url, status, tags, skipped_tags}` or `{error, hint}`.
 
@@ -265,25 +265,31 @@ never worked around. Test with `--draft true` and delete the draft afterwards.
 
 ### `douyin-creator/video-publish` — publish a video on Douyin's creator center
 
-Adapters run inside the page and cannot read local files, so publishing is two
-steps in one tab: upload the file, then let the adapter fill in the post page
-and click 发布 (or 暂存离开).
+One command with chrome-use 1.5.149 or newer: `--video` takes the local file,
+the adapter opens the upload page, hands the file over, and once Douyin has
+moved to the post page fills it in and clicks 发布 (or 暂存离开). `--until-done`
+reruns it across that page change and while the file is still uploading.
 
 ```sh
-# 1. upload: the page moves on to /creator-micro/content/post/video by itself
-chrome-use open https://creator.douyin.com/creator-micro/content/upload
-chrome-use upload 'input[type=file]' ./video.mp4
-
-# 2. fill in and publish (add --draft true to save a draft instead)
-chrome-use site douyin-creator/video-publish \
+chrome-use site douyin-creator/video-publish --video ./video.mp4 --until-done \
   --title "让 Claude Code 和 Codex 互相叫醒" \
-  --description "$(cat desc.txt)" \
+  --description @desc.txt \
   --topics "AI编程,ClaudeCode,程序员" \
-  --declaration ai --visibility public
+  --declaration ai --visibility public      # add --draft true to save a draft instead
+```
+
+With an older chrome-use, upload first and run the adapter without `--video`
+(re-run while it says `incomplete` / `uploading`):
+
+```sh
+chrome-use open https://creator.douyin.com/creator-micro/content/upload
+chrome-use upload 'input[type=file]' ./video.mp4     # the page moves on to /content/post/video by itself
+chrome-use site douyin-creator/video-publish --title "…" --description "$(cat desc.txt)" --topics "…"
 ```
 
 | arg | values |
 | --- | --- |
+| `--video` | local video file (chrome-use 1.5.149+). Skipped when the tab is already on the post page with a video uploaded |
 | `--title` | required, at most 30 characters (作品标题) |
 | `--description` | at most 1000 characters; newlines become new lines |
 | `--topics` | comma-separated, `#` optional. Each is typed as `#name` and picked from Douyin's suggestion list by exact name (then case-insensitively). A name Douyin has no topic for (the list only offers to create it, heat 0) is taken back out and reported in `skipped_topics` |
@@ -335,19 +341,29 @@ check was a private draft of a 3 s test clip, discarded afterwards.
 
 ### `youtube-studio/video-upload` — upload and publish a video in YouTube Studio
 
-Two steps in one tab, as with Douyin: hand the file to Studio's upload page,
-then let the adapter fill the upload dialog and publish.
+One command with chrome-use 1.5.149 or newer: `--video` takes the local file,
+the adapter opens the channel's upload dialog (the tab must be on a
+`studio.youtube.com/channel/UC…` page), hands the file over, fills the dialog
+and publishes. `--until-done` reruns it while Studio says uploading /
+processing / checking; the adapter's own default is 30 minutes, raise it with
+`--timeout 60m`, or pass `--wait_checks false` to publish once the upload is
+complete.
 
 ```sh
-# 1. upload: the dialog opens on 详细信息 / Details by itself
-chrome-use open 'https://studio.youtube.com/channel/<channel id>/videos/upload?d=ud'
-chrome-use upload 'input[type=file]' ./video.mp4
-
-# 2. fill in and publish; re-run the same command while it says uploading / processing / checking
-chrome-use site youtube-studio/video-upload \
-  --title "让 Claude Code 和 Codex 互相叫醒" --description "$(cat desc.txt)" \
+chrome-use open https://studio.youtube.com
+chrome-use site youtube-studio/video-upload --video ./video.mp4 --until-done \
+  --title "让 Claude Code 和 Codex 互相叫醒" --description @desc.txt \
   --visibility private --made_for_kids false --ai_altered no \
   --category 科学和技术 --tags "Claude Code,Codex" --language zh-Hans
+```
+
+With an older chrome-use, upload first and run the adapter without `--video`,
+re-running while it says uploading / processing / checking:
+
+```sh
+chrome-use open 'https://studio.youtube.com/channel/<channel id>/videos/upload?d=ud'
+chrome-use upload 'input[type=file]' ./video.mp4      # the dialog opens on 详细信息 / Details by itself
+chrome-use site youtube-studio/video-upload --title "…" --description "$(cat desc.txt)" --visibility private
 
 # later, on the video's edit page, change only the visibility
 chrome-use open https://studio.youtube.com/video/<video id>/edit
@@ -406,20 +422,26 @@ captured in `youtube-studio/fixtures/` (`node --test`).
 
 ### `bilibili-creator/video-publish` — publish a video on Bilibili (投稿)
 
-Two steps in one tab, as with Douyin: hand the file to the 投稿 page, then let
-the adapter fill the form, wait for 上传完成 and click 立即投稿.
+One command with chrome-use 1.5.149 or newer: `--video` takes the local file,
+the adapter opens the 投稿 page, hands the file over, fills the form, and
+`--until-done` reruns it until 上传完成 and 立即投稿 is clicked.
 
 ```sh
-# 1. upload: the form opens below the file list
-chrome-use open https://member.bilibili.com/platform/upload/video/frame
-chrome-use upload '.bcc-upload-wrapper input[type=file]' ./video.mp4
-
-# 2. check the filled form first (optional), then submit; re-run while it says incomplete / uploading
-chrome-use site bilibili-creator/video-publish \
-  --title "让 Claude Code 和 Codex 互相叫醒" --description "$(cat desc.txt)" \
+# check the filled form first (optional): --submit false stops before 立即投稿
+chrome-use site bilibili-creator/video-publish --video ./video.mp4 --until-done \
+  --title "让 Claude Code 和 Codex 互相叫醒" --description @desc.txt \
   --tags "Claude Code,Codex,AI编程,开源" --category 科技数码 \
   --type self --declaration ai --submit false
-chrome-use site bilibili-creator/video-publish …same arguments without --submit false
+chrome-use site bilibili-creator/video-publish …same arguments without --video and --submit false, with --until-done
+```
+
+With an older chrome-use, upload first and run the adapter without `--video`,
+re-running while it says `incomplete` / `uploading`:
+
+```sh
+chrome-use open https://member.bilibili.com/platform/upload/video/frame
+chrome-use upload '.bcc-upload-wrapper input[type=file]' ./video.mp4     # the form opens below the file list
+chrome-use site bilibili-creator/video-publish --title "…" --description "$(cat desc.txt)" --tags "…"
 ```
 
 | arg | values |

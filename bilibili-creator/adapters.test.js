@@ -221,6 +221,75 @@ test('before an upload: says how to upload first', async () => {
 
 // ---- the whole form ----------------------------------------------------------
 
+// ---- --video (a local file handed over by chrome-use 1.5.149+) ---------------
+
+const DROP_ZONE = '<div id="app"><div class="bcc-upload-wrapper"><input type="file" multiple accept=".mp4,.flv"></div></div>'
+// What chrome-use puts in args for a "type": "file" arg.
+const localVideo = (page, calls, onAttach) => ({
+  path: '/abs/clip.mp4',
+  name: 'clip.mp4',
+  size: 14000000,
+  setOn: async (selector) => {
+    calls.push(selector)
+    const input = page.body.querySelector(selector)
+    assert.ok(input, 'setOn must name an element that exists: ' + selector)
+    input.files = [{ name: 'clip.mp4' }]
+    if (onAttach) onAttach()
+    return { attached: 1 }
+  },
+})
+
+test('--video away from the 投稿 page: opens it and asks to be run again', async () => {
+  const p = createPage({ html: '<div id="app">创作中心</div>', url: 'https://member.bilibili.com/platform/home' })
+  const calls = []
+  const r = await load(p)({ title: 'T', tags: 'a', video: localVideo(p, calls) })
+  assert.equal(r.status, 'incomplete')
+  assert.equal(r.stopped_at, 'open-upload')
+  assert.equal(p.window.location.href, URL_FRAME)
+  assert.deepEqual(calls, [])
+})
+
+test('--video on the drop zone: hands the file over, then waits for the form', async () => {
+  const p = createPage({ html: DROP_ZONE, url: URL_FRAME })
+  const calls = []
+  const notes = []
+  const r = await load(p)({ title: 'T', tags: 'a', video: localVideo(p, calls), progress: (m) => notes.push(m) })
+  assert.deepEqual(calls, ['.bcc-upload-wrapper input[type="file"]'])
+  assert.equal(p.body.querySelector('input[type="file"]').files.length, 1)
+  assert.deepEqual(notes, ['uploading clip.mp4'])
+  // The stub never shows the form, so the run stops there and can be rerun.
+  assert.equal(r.status, 'incomplete')
+  assert.equal(r.stopped_at, 'upload')
+})
+
+test('--video: once the form appears the same run goes on to fill it', async () => {
+  const p = createPage({ html: DROP_ZONE, url: URL_FRAME })
+  const calls = []
+  const showForm = () => {
+    for (const n of p.document.parse('<div class="video-title"><input type="text" value=""></div>')) p.body.appendChild(n)
+  }
+  const r = await load(p)({ title: 'T', tags: 'a', video: localVideo(p, calls, showForm) })
+  assert.equal(calls.length, 1)
+  // Past the upload step: the next thing it needs is the rest of the form,
+  // which this minimal stub does not have.
+  assert.match(r.error, /创作声明 not found/)
+})
+
+test('--video with the form already up: nothing is uploaded again', async () => {
+  const p = formPage()
+  const calls = []
+  const r = await load(p)({ ...ARGS, submit: 'false', video: localVideo(p, calls) })
+  assert.deepEqual(calls, [])
+  assert.equal(r.ok, true)
+})
+
+test('--video from a chrome-use without file args says to upgrade', async () => {
+  const p = createPage({ html: DROP_ZONE, url: URL_FRAME })
+  const r = await load(p)({ title: 'T', tags: 'a', video: './clip.mp4' })
+  assert.match(r.error, /1\.5\.149/)
+  assert.match(r.hint, /chrome-use upgrade/)
+})
+
 test('publish: fills every field, swaps the pre-filled tags, submits and returns the BV id', async () => {
   const p = formPage()
   const r = await load(p)(ARGS)

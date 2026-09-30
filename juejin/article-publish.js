@@ -5,7 +5,7 @@
   "domain": "juejin.cn",
   "args": {
     "title": {"required": true, "description": "Article title"},
-    "markdown": {"required": true, "description": "Full Markdown body (pass a file with --markdown \"$(cat post.md)\")"},
+    "markdown": {"required": true, "description": "Full Markdown body (pass a file with --markdown @post.md)"},
     "summary": {"required": false, "description": "摘要 / brief_content. Juejin wants 50-100 characters to publish; derived from the body when omitted"},
     "tags": {"required": false, "description": "Comma-separated tag names, e.g. \"Claude,AI编程,开源\". Only tags Juejin already has are used (max 3); the rest come back in skipped_tags. Publishing needs at least one"},
     "category": {"required": false, "description": "Category name or id: 后端 前端 Android iOS 人工智能 开发工具 代码人生 阅读. Required to publish"},
@@ -13,7 +13,7 @@
   },
   "capabilities": ["network"],
   "readOnly": false,
-  "example": "chrome-use site juejin/article-publish --title \"Hello\" --markdown \"$(cat post.md)\" --tags \"AI编程,开源\" --category 人工智能 --draft true"
+  "example": "chrome-use site juejin/article-publish --title \"Hello\" --markdown @post.md --tags \"AI编程,开源\" --category 人工智能 --draft true"
 }
 */
 

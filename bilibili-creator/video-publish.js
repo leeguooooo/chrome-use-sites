@@ -1,9 +1,11 @@
 /* @meta
 {
   "name": "bilibili-creator/video-publish",
-  "description": "Fill in and publish (立即投稿) or save as a draft (存草稿) a video in Bilibili's creator center, after the file was uploaded on the 投稿 page",
+  "description": "Upload a local video (--video), fill in and publish (立即投稿) or save as a draft (存草稿) in Bilibili's creator center. One command with --until-done; without --video it fills in a video already uploaded on the 投稿 page",
+  "timeout": 900,
   "domain": "member.bilibili.com",
   "args": {
+    "video": {"required": false, "type": "file", "input": ".bcc-upload-wrapper input[type=file]", "description": "Local video file to upload (needs chrome-use 1.5.149+). The adapter opens the 投稿 page and hands the file to it; use with --until-done so the run waits for 上传完成"},
     "title": {"required": true, "description": "标题, at most 80 characters"},
     "description": {"required": false, "description": "简介, at most 2000 characters. Newlines start new paragraphs"},
     "tags": {"required": true, "description": "Comma-separated 标签, 1 to 10, each at most 20 characters. A tag that matches one of Bilibili's 推荐标签 is clicked there; the rest are typed and entered. Tags already on the form that are not listed are removed"},
@@ -17,7 +19,7 @@
   },
   "capabilities": ["dom"],
   "readOnly": false,
-  "example": "chrome-use site bilibili-creator/video-publish --title \"Hello\" --description \"$(cat desc.txt)\" --tags \"Claude Code,开源\" --category 科技数码 --declaration ai --draft true"
+  "example": "chrome-use site bilibili-creator/video-publish --video ./clip.mp4 --until-done --title \"Hello\" --description @desc.txt --tags \"Claude Code,开源\" --category 科技数码 --declaration ai --draft true"
 }
 */
 
@@ -25,11 +27,12 @@ async function(args) {
   args = args || {}
   const W = window
   const D = document
-  // chrome-use abandons an evaluation after ~8 s. Every wait draws on this
-  // budget; a run that is short on time stops at a safe point with status
-  // "incomplete" and the same command continues where it left off.
+  // Every wait draws on this budget; a run that is short on time stops at a
+  // safe point with status "incomplete" and the same command continues where
+  // it left off. chrome-use 1.5.149+ says how long the run has
+  // (args.budgetMs); older versions abandon an evaluation after ~8 s.
   const START = Date.now()
-  const BUDGET_MS = 7000
+  const BUDGET_MS = args.budgetMs > 0 ? Math.max(7000, args.budgetMs - 2000) : 7000
   const left = () => BUDGET_MS - (Date.now() - START)
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
   const truthy = (v) => /^(1|true|yes|y|on)$/i.test(String(v == null ? '' : v).trim())
@@ -166,16 +169,53 @@ async function(args) {
     }
   }
 
-  const titleInput = one('.video-title input')
+  // --video is a local file chrome-use hands over: {path, name, size, setOn}.
+  // An older chrome-use passes the path as a plain string and cannot attach it.
+  const localFile = args.video && typeof args.video === 'object' && typeof args.video.setOn === 'function' ? args.video : null
+  if (args.video && !localFile) {
+    return {
+      error: '--video needs chrome-use 1.5.149 or newer',
+      hint: 'Run chrome-use upgrade. Or upload first: chrome-use upload \'.bcc-upload-wrapper input[type=file]\' ./video.mp4, then run this without --video.',
+    }
+  }
+  const progress = (m) => { if (typeof args.progress === 'function') args.progress(m) }
+
+  let titleInput = one('.video-title input')
   if (!titleInput) {
-    const uploadBox = D.querySelector('.bcc-upload-wrapper input[type="file"]')
+    const UPLOAD_SEL = '.bcc-upload-wrapper input[type="file"]'
+    const uploadBox = D.querySelector(UPLOAD_SEL)
     if (!uploadBox && /登录|扫码/.test(text(D.body).slice(0, 600))) {
       return { error: 'Not signed in to member.bilibili.com', hint: 'Log in to Bilibili in this browser, then retry.' }
     }
+    if (localFile) {
+      const RERUN = 'Run the same command again to continue (--until-done does it for you).'
+      const UPLOAD_PATH = '/platform/upload/video/frame'
+      if (!uploadBox && W.location.pathname.indexOf(UPLOAD_PATH) !== 0) {
+        progress('opening the 投稿 page')
+        W.location.href = 'https://member.bilibili.com' + UPLOAD_PATH
+        return { ok: true, status: 'incomplete', stopped_at: 'open-upload', done: [], warnings: [], hint: RERUN }
+      }
+      const box = uploadBox || await waitFor(() => D.querySelector(UPLOAD_SEL), 5000)
+      if (!box) return { error: 'No video file input on the 投稿 page', hint: 'The page changed; upload with chrome-use upload instead.' }
+      progress('uploading ' + localFile.name)
+      try {
+        await localFile.setOn(UPLOAD_SEL)
+      } catch (e) {
+        return { error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e) }
+      }
+      // The form replaces the drop zone in place once the file is accepted.
+      titleInput = await waitFor(() => one('.video-title input'), 15000, 150)
+      if (!titleInput) {
+        return { ok: true, status: 'incomplete', stopped_at: 'upload', done: [], warnings: [], file: localFile.name, size: localFile.size, hint: 'The file was handed over but the form is not up yet. ' + RERUN }
+      }
+    }
+  }
+  if (!titleInput) {
+    const uploadBox = D.querySelector('.bcc-upload-wrapper input[type="file"]')
     return {
       error: uploadBox ? 'No video uploaded yet' : 'Not on the 投稿 page (' + W.location.pathname + ')',
       hint: 'First: chrome-use open https://member.bilibili.com/platform/upload/video/frame && ' +
-        'chrome-use upload \'.bcc-upload-wrapper input[type=file]\' ./video.mp4, then run this again.',
+        'chrome-use upload \'.bcc-upload-wrapper input[type=file]\' ./video.mp4, then run this again. With chrome-use 1.5.149+ pass --video ./video.mp4 --until-done instead.',
     }
   }
 

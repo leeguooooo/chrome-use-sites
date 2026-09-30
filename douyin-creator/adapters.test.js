@@ -356,6 +356,78 @@ test('--video_url on the post page is refused', async () => {
   assert.match(r.error, /already uploaded/)
 })
 
+// ---- --video (a local file handed over by chrome-use 1.5.149+) ---------------
+
+// What chrome-use puts in args for a "type": "file" arg. setOn records the
+// selector and attaches the file the way `chrome-use upload` would.
+const localVideo = (page, calls) => ({
+  path: '/abs/clip.mp4',
+  name: 'clip.mp4',
+  size: 16281,
+  setOn: async (selector) => {
+    calls.push(selector)
+    const input = page.body.querySelector(selector)
+    assert.ok(input, 'setOn must name an element that exists: ' + selector)
+    input.files = [{ name: 'clip.mp4', size: 16281 }]
+    return { attached: 1 }
+  },
+})
+const storage = () => {
+  const m = new Map()
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) }
+}
+
+test('--video away from the upload page: opens it and asks to be run again', async () => {
+  const p = createPage({ html: '<div>首页</div>', url: 'https://creator.douyin.com/creator-micro/home' })
+  const calls = []
+  const r = await load(p)({ title: 'T', video: localVideo(p, calls) })
+  assert.equal(r.status, 'incomplete')
+  assert.equal(r.step, 'open-upload')
+  assert.equal(p.window.location.href, UPLOAD_URL)
+  assert.deepEqual(calls, [])
+})
+
+test('--video on the upload page: hands the file to the video input once', async () => {
+  const p = createPage({ html: fixture('upload-page.html'), url: UPLOAD_URL })
+  p.window.sessionStorage = storage()
+  const calls = []
+  const notes = []
+  const args = { title: 'T', video: localVideo(p, calls), progress: (m) => notes.push(m) }
+  const r = await load(p)(args)
+  assert.equal(r.status, 'incomplete')
+  assert.equal(r.step, 'upload')
+  assert.equal(r.file, 'clip.mp4')
+  assert.equal(calls.length, 1)
+  assert.equal(p.body.querySelector('input[type="file"]').files.length, 1)
+  assert.deepEqual(notes, ['uploading clip.mp4'])
+
+  // A rerun that still lands on the upload page (slow navigation) must not
+  // hand the same file over a second time.
+  const again = await load(p)(args)
+  assert.equal(again.status, 'incomplete')
+  assert.equal(calls.length, 1)
+})
+
+test('--video on the post page: the upload is done, the form is filled', async () => {
+  const p = postPage()
+  const calls = []
+  const r = await load(p)({ title: 'Hello', draft: 'true', video: localVideo(p, calls) })
+  assert.equal(r.ok, true)
+  assert.equal(r.status, 'draft')
+  assert.deepEqual(calls, [])
+})
+
+test('--video from a chrome-use without file args says to upgrade', async () => {
+  const p = createPage({ html: fixture('upload-page.html'), url: UPLOAD_URL })
+  const r = await load(p)({ title: 'T', video: './clip.mp4' })
+  assert.match(r.error, /1\.5\.149/)
+  assert.match(r.hint, /chrome-use upgrade/)
+})
+
+test('args.budgetMs lengthens the run budget; without it the 7 s budget stands', () => {
+  assert.match(SRC, /args\.budgetMs > 0 \? Math\.max\(7000, args\.budgetMs - 2000\) : 7000/)
+})
+
 // ---- packaging -----------------------------------------------------------------
 
 test('install.sh ships every douyin-creator adapter in this repo', () => {

@@ -5,7 +5,7 @@
   "domain": "editor.csdn.net",
   "args": {
     "title": {"required": true, "description": "Article title (CSDN wants 5-100 characters)"},
-    "markdown": {"required": true, "description": "Full Markdown body (pass a file with --markdown \"$(cat post.md)\")"},
+    "markdown": {"required": true, "description": "Full Markdown body (pass a file with --markdown @post.md)"},
     "summary": {"required": false, "description": "摘要 (Description), up to 256 characters"},
     "tags": {"required": false, "description": "Comma-separated tag names. Only tags CSDN already has are used (max 5); accounts below blog level 3 cannot create tags, so the rest come back in skipped_tags. Publishing needs at least one"},
     "category": {"required": false, "description": "Your own 分类专栏 names, comma-separated (optional)"},
@@ -15,7 +15,7 @@
   },
   "capabilities": ["network"],
   "readOnly": false,
-  "example": "chrome-use site csdn/article-publish --title \"Hello\" --markdown \"$(cat post.md)\" --summary \"...\" --tags \"AI编程,人工智能,开源\" --draft true"
+  "example": "chrome-use site csdn/article-publish --title \"Hello\" --markdown @post.md --summary \"...\" --tags \"AI编程,人工智能,开源\" --draft true"
 }
 */
 
