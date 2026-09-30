@@ -263,6 +263,76 @@ get a second draft), finish it in the site's editor. Check your article list
 before re-posting something. Captchas, SMS or real-name checks are reported and
 never worked around. Test with `--draft true` and delete the draft afterwards.
 
+### `douyin-creator/video-publish` — publish a video on Douyin's creator center
+
+Adapters run inside the page and cannot read local files, so publishing is two
+steps in one tab: upload the file, then let the adapter fill in the post page
+and click 发布 (or 暂存离开).
+
+```sh
+# 1. upload: the page moves on to /creator-micro/content/post/video by itself
+chrome-use open https://creator.douyin.com/creator-micro/content/upload
+chrome-use upload 'input[type=file]' ./video.mp4
+
+# 2. fill in and publish (add --draft true to save a draft instead)
+chrome-use site douyin-creator/video-publish \
+  --title "让 Claude Code 和 Codex 互相叫醒" \
+  --description "$(cat desc.txt)" \
+  --topics "AI编程,ClaudeCode,程序员" \
+  --declaration ai --visibility public
+```
+
+| arg | values |
+| --- | --- |
+| `--title` | required, at most 30 characters (作品标题) |
+| `--description` | at most 1000 characters; newlines become new lines |
+| `--topics` | comma-separated, `#` optional. Each is typed as `#name` and picked from Douyin's suggestion list by exact name (then case-insensitively). A name Douyin has no topic for (the list only offers to create it, heat 0) is taken back out and reported in `skipped_topics` |
+| `--declaration` | 自主声明: `ai` 内容由AI生成, `opinion` 内容为个人观点或见解, `repost` 内容为转载信息 (declared 取材站外), `promo` 内容含营销推广信息, `fiction` 虚构演绎，仅供娱乐, `none` 无需添加自主声明. Omit to leave it unset |
+| `--visibility` | `public` (default) 公开, `friends` 好友可见, `private` 仅自己可见 |
+| `--draft` | `true` clicks 暂存离开 instead of 发布 |
+| `--video_url` | upload page only, instead of `chrome-use upload`: fetch an https URL in the page and hand it to the file input. Needs a host that sends CORS headers and a file that downloads in a few seconds. **GitHub release assets do not work**: neither the `github.com/…/releases/download/…` redirect nor `release-assets.githubusercontent.com` sends `Access-Control-Allow-Origin` (checked 2026-09-30). Run again without it once the page is on the post page |
+
+Returns `{ok, status, title, topics, skipped_topics, declaration, visibility, warnings, url, note}`
+or `{error, hint}`. `status` is `published` (the page moved to the content manager;
+the work shows 审核中 until review passes) or `draft`. `warnings` carries the 发文助手
+quick-check findings (for example 横/竖双封面缺失, 作品原创性不足); they never block.
+
+How it works, and why:
+
+- **It drives the page's own form**, never Douyin's signed APIs: the title through
+  the input's value setter plus an `input` event, the description through
+  `execCommand('insertText')` and a synthetic Enter in the contenteditable
+  `.editor-kit-container`, topics by clicking the suggestion item, 自主声明 in
+  its dialog, 谁可以看 by its radio labels.
+- **Upload finished** is read from the uploader component's React state
+  (`uploadStatus` 1 uploading, 2 done, -1 failed). "上传成功" is only a toast
+  and gone after a second, so it is no marker. While the upload runs the adapter
+  returns `status: "uploading"` with `upload_percent` and touches nothing; run it
+  again later.
+- **The editor syncs its caret on `selectionchange`, which is asynchronous.**
+  Typing right after moving the caret by script inserts at the editor's stale
+  position: live, `#AI编程` came out as a copy of the first five characters and
+  the second line vanished. The adapter puts the caret inside the last text leaf
+  and yields before every edit.
+- **chrome-use gives an adapter about 8 s.** The adapter works to a 7 s budget.
+  If it runs out (many topics, a slow suggestion list) it stops before the next
+  step with `status: "incomplete"`; every step checks what is already there, so
+  running the same command again continues without doubling text or topics.
+- If the page had not moved on after the click by the deadline, `status` is
+  `publish_clicked` / `draft_clicked`. Check the content manager (or the
+  upload page) before running again: a re-run could post twice.
+- **Drafts.** Douyin keeps one unfinished video. After 暂存离开 the upload page
+  shows 你还有上次未发布的视频，是否继续编辑？ with 继续编辑 (resume) and 放弃
+  (discard).
+- A captcha, slider or SMS check stops the run with an error. It is never worked
+  around.
+
+**Risk.** This posts to your real account, and Douyin (like Xiaohongshu) acts
+on scripted behaviour. One run = one video. Test with `--draft true --visibility
+private`, then discard the draft with 放弃. The adapter's tests run against the
+post page captured in `douyin-creator/fixtures/` (`node --test`); the one live
+check was a private draft of a 3 s test clip, discarded afterwards.
+
 ## Adding an adapter
 
 Drop `packname/command.js` in this repo and follow the shape of the existing files. Current chrome-use versions discover `.js` adapters directly from the repository tree. Also add the path to `PACKS` in `install.sh` while the legacy v1.5.77 installer remains supported.
