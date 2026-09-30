@@ -333,6 +333,77 @@ private`, then discard the draft with 放弃. The adapter's tests run against th
 post page captured in `douyin-creator/fixtures/` (`node --test`); the one live
 check was a private draft of a 3 s test clip, discarded afterwards.
 
+### `youtube-studio/video-upload` — upload and publish a video in YouTube Studio
+
+Two steps in one tab, as with Douyin: hand the file to Studio's upload page,
+then let the adapter fill the upload dialog and publish.
+
+```sh
+# 1. upload: the dialog opens on 详细信息 / Details by itself
+chrome-use open 'https://studio.youtube.com/channel/<channel id>/videos/upload?d=ud'
+chrome-use upload 'input[type=file]' ./video.mp4
+
+# 2. fill in and publish; re-run the same command while it says uploading / processing / checking
+chrome-use site youtube-studio/video-upload \
+  --title "让 Claude Code 和 Codex 互相叫醒" --description "$(cat desc.txt)" \
+  --visibility private --made_for_kids false --ai_altered no \
+  --category 科学和技术 --tags "Claude Code,Codex" --language zh-Hans
+
+# later, on the video's edit page, change only the visibility
+chrome-use open https://studio.youtube.com/video/<video id>/edit
+chrome-use site youtube-studio/video-upload --visibility public
+```
+
+| arg | values |
+| --- | --- |
+| `--title` | at most 100 characters, no `<` `>`. Omit to keep Studio's (the file name) |
+| `--description` | at most 5000 characters, no `<` `>`; newlines are kept |
+| `--visibility` | `private` (default), `unlisted`, `public` |
+| `--made_for_kids` | `false` (default) or `true`. Studio will not go past Details without it |
+| `--ai_altered` | `yes` / `no`: the altered or synthetic content question (realistic people, events, places). Omit to leave it unanswered |
+| `--category` | display name as Studio shows it (科学和技术) or the id suffix (`SCIENCE`, `EDUCATION`, …) |
+| `--tags` | comma-separated. Missing tags are added; tags already on the video are kept |
+| `--playlist` | name of an existing playlist to tick; an unknown name is a warning |
+| `--language` | video language as a code (`zh-Hans`, `en`) or its name in the menu |
+| `--allow_embed` | `true` (default) / `false` |
+| `--wait_checks` | `true` (default) publishes only after the upload, processing and copyright checks finish. `false` publishes once the upload is done |
+
+Returns `{ok, status, url, visibility, title, warnings, done}` or `{error, hint}`.
+`status` is `saved` (private) or `published` once the dialog closed, `uploading` /
+`processing` / `checking` (details are filled, nothing published yet, with `percent`
+and Studio's `progress` text), `incomplete` (out of time, re-run), or on the edit page
+`visibility_changed` / `unchanged`. `url` is `https://youtu.be/<id>` from the dialog's
+`video-id`. `warnings` carries the checks result when it is not 未发现任何问题 (e.g. a
+copyright claim) and notices such as 如需提供可点击的外部链接，请先完成一次性验证 (the
+channel is not phone-verified; the adapter reports it and never verifies).
+
+How it works:
+
+- **Studio's own dialog, real DOM events only.** Studio is Polymer on shady DOM,
+  so `document.querySelector` reaches everything and a DOM `click()` is what its
+  tap handlers take (a pointer click at the element's centre is often occluded by
+  a banner). Stable hooks: `ytcp-uploads-dialog[workflow-step][video-id]`,
+  `#title-textarea` / `#description-textarea` `#textbox`, radio `name`s
+  (`VIDEO_MADE_FOR_KIDS_NOT_MFK`, `VIDEO_HAS_ALTERED_CONTENT_NO`, `PRIVATE` / `UNLISTED` /
+  `PUBLIC`), menu items' `test-id` (`CREATOR_VIDEO_CATEGORY_SCIENCE`, `zh-Hans`).
+- **Title and description** go in with one `execCommand('insertText')` over a
+  `selectAll`: typing keys into the description dropped part of a long
+  multi-line text.
+- **Progress** is read from `ytcp-video-upload-progress` (`uploading` attribute,
+  `checks-summary-status-v2`, `.progress-label`).
+- **Steps restamp.** Moving between 详细信息 → 视频元素 → 检查 → 公开范围 rebuilds each
+  step's DOM (and folds 显示高级设置 up again); Studio keeps the values. A run that
+  verified the details for these arguments marks the dialog, so later runs go
+  straight on; a run that finds the dialog on a later step without that mark goes
+  back to 详细信息 and checks every field first.
+- **7 s budget** inside chrome-use's ~8 s window; every step checks before it acts,
+  so re-running continues without doubling text or tags.
+- A captcha or identity check stops the run with an error.
+
+**Risk.** This publishes to your real channel. Upload with `--visibility private`,
+check the video, then switch it on the edit page. Tests run against the dialog
+captured in `youtube-studio/fixtures/` (`node --test`).
+
 ### `bilibili-creator/video-publish` — publish a video on Bilibili (投稿)
 
 Two steps in one tab, as with Douyin: hand the file to the 投稿 page, then let

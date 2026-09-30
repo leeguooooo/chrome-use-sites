@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/leeguooooo/chrome-use-sites/main/install.sh | sh
 #
 # Installs every adapter pack in this repo (currently: sggit, twitter, chatgpt,
-# xiaohongshu-creator, douyin-creator, bilibili-creator, and article-publish for juejin, csdn,
+# xiaohongshu-creator, douyin-creator, youtube-studio, bilibili-creator, and article-publish for juejin, csdn,
 # segmentfault and zhihu). Custom adapters
 # under ~/.chrome-use/sites/ survive `chrome-use site update` (it merges the
 # community pack, it does not wipe the dir), so these stay put.
@@ -24,6 +24,7 @@ xiaohongshu-creator/note-stats.js
 juejin/article-publish.js csdn/article-publish.js segmentfault/article-publish.js
 zhihu/article-publish.js
 douyin-creator/video-publish.js
+youtube-studio/video-upload.js
 bilibili-creator/video-publish.js"
 
 # Files a pack needs that live in another repo. The twitter adapters call
@@ -51,7 +52,7 @@ done
 
 echo "✓ done"
 echo
-echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|douyin-creator|bilibili-creator|juejin|csdn|segmentfault|zhihu)/'"
+echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|douyin-creator|youtube-studio|bilibili-creator|juejin|csdn|segmentfault|zhihu)/'"
 echo "Try:     chrome-use site twitter/search \"chrome-use\""
 echo
 echo "Note: adapters run in YOUR logged-in browser tab, so you must be"

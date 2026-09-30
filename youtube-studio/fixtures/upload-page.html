@@ -1,0 +1,92 @@
+<ytcp-uploads-dialog unified="" workflow-step="SELECT_FILES"><tp-yt-paper-dialog id="dialog" no-cancel-on-outside-click="" restore-focus-on-close="" class="style-scope ytcp-uploads-dialog" style-target="host" role="dialog" tabindex="-1" with-backdrop="" style="outline: none; position: fixed; top: 24px; left: 260px; z-index: 2202;">
+  <div class="dialog-content style-scope ytcp-uploads-dialog">
+    <div class="header style-scope ytcp-uploads-dialog">
+      <div class="title-row style-scope ytcp-uploads-dialog">
+        <ytcp-animatable class="metadata-fade-in-section style-scope ytcp-uploads-dialog">
+          <div id="title" class="style-scope ytcp-uploads-dialog">上传视频</div>
+        </ytcp-animatable>
+        <ytcp-tooltip for="title" truncation="" class="style-scope ytcp-uploads-dialog" style="display: none;"></ytcp-tooltip>
+        <div class="close-button-area style-scope ytcp-uploads-dialog">
+          <ytcp-animatable class="metadata-fade-in-section style-scope ytcp-uploads-dialog">
+            <ytcp-badge class="draft-badge style-scope ytcp-uploads-dialog" hidden="" state="default" unified=""><div class="container style-scope ytcp-badge"><dom-if restamp="" class="style-scope ytcp-badge"></dom-if><div class="label style-scope ytcp-badge">正在保存…</div><dom-if restamp="" class="style-scope ytcp-badge"></dom-if></div></ytcp-badge>
+          </ytcp-animatable>
+          <ytcp-send-feedback-button bucket="ReStudioUploads" class="style-scope ytcp-uploads-dialog">
+            <ytcp-button icon="icons:feedback" type="text" class="style-scope ytcp-uploads-dialog" tabindex="-1" button-style="default" icon-alignment="start" aria-disabled="false"><dom-if class="style-scope ytcp-button"></dom-if><div style="display: contents;" class="style-scope ytcp-button"><ytcp-button-shape><button class="ytcpButtonShapeImplHost ytcpButtonShapeImpl--text ytcpButtonShapeImpl--mono ytcpButtonShapeImpl--size-m ytcpButtonShapeImpl--icon-button ytcpButtonShapeImpl--enable-backdrop-filter-experiment" title="" aria-label="发送反馈" aria-disabled="false" tabindex="0" style=""><div aria-hidden="true" class="ytcpButtonShapeImpl__icon"><span class="ytIconWrapperHost" style="width: 24px; height: 24px;"><span class="yt-icon-shape ytSpecIconShapeHost"><div style="width: 100%; height: 100%; display: block; fill: currentcolor;"></div></span></span></div><yt-touch-feedback-shape aria-hidden="true" class="ytSpecTouchFeedbackShapeHost ytSpecTouchFeedbackShapeTouchResponse"><div class="ytSpecTouchFeedbackShapeStroke"></div><div class="ytSpecTouchFeedbackShapeFill"></div></yt-touch-feedback-shape></button></ytcp-button-shape></div></ytcp-button>
+          </ytcp-send-feedback-button>
+          <ytcp-button id="ytcp-uploads-dialog-close-button" icon="close" type="text" class="style-scope ytcp-uploads-dialog" tabindex="-1" button-style="default" icon-alignment="start" aria-disabled="false"><dom-if class="style-scope ytcp-button"></dom-if><div style="display: contents;" class="style-scope ytcp-button"><ytcp-button-shape><button class="ytcpButtonShapeImplHost ytcpButtonShapeImpl--text ytcpButtonShapeImpl--mono ytcpButtonShapeImpl--size-m ytcpButtonShapeImpl--icon-button ytcpButtonShapeImpl--enable-backdrop-filter-experiment" title="" aria-label="关闭" aria-disabled="false" tabindex="0" style=""><div aria-hidden="true" class="ytcpButtonShapeImpl__icon"><span class="ytIconWrapperHost" style="width: 24px; height: 24px;"><span class="yt-icon-shape ytSpecIconShapeHost"><div style="width: 100%; height: 100%; display: block; fill: currentcolor;"></div></span></span></div><yt-touch-feedback-shape aria-hidden="true" class="ytSpecTouchFeedbackShapeHost ytSpecTouchFeedbackShapeTouchResponse"><div class="ytSpecTouchFeedbackShapeStroke"></div><div class="ytSpecTouchFeedbackShapeFill"></div></yt-touch-feedback-shape></button></ytcp-button-shape></div></ytcp-button>
+        </div>
+      </div>
+      <ytcp-animatable class="metadata-fade-in-section stepper-animatable style-scope ytcp-uploads-dialog">
+        <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+        <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+        <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+      </ytcp-animatable>
+    </div>
+    <tp-yt-paper-progress indeterminate="" class="style-scope ytcp-uploads-dialog" role="progressbar" value="0" aria-valuemin="0" aria-valuemax="100" aria-disabled="false" hidden=""><div id="progressContainer" class="style-scope tp-yt-paper-progress">
+  <div id="secondaryProgress" class="style-scope tp-yt-paper-progress" hidden="" style="transform: scaleX(0);"></div>
+  <div id="primaryProgress" class="style-scope tp-yt-paper-progress indeterminate" style="transform: scaleX(0);"></div>
+</div>
+</tp-yt-paper-progress>
+    <div class="dialog-scrim style-scope ytcp-uploads-dialog"></div>
+      <ytcp-uploads-file-picker id="ytcp-uploads-dialog-file-picker" class="style-scope ytcp-uploads-dialog" unified=""><div id="content" class="style-scope ytcp-uploads-file-picker" style="position: relative;">
+  <ytcp-uploads-file-picker-animation id="animation" class="style-scope ytcp-uploads-file-picker" state="idle"><div id="circle" class="style-scope ytcp-uploads-file-picker-animation"><div id="arrow-group" class="style-scope ytcp-uploads-file-picker-animation"><div id="arrow" class="style-scope ytcp-uploads-file-picker-animation"><div id="arrow-tip" class="style-scope ytcp-uploads-file-picker-animation"></div><div id="smoke" class="style-scope ytcp-uploads-file-picker-animation"></div><div id="arrow-line" class="style-scope ytcp-uploads-file-picker-animation"></div></div><div id="arrow-underline" class="style-scope ytcp-uploads-file-picker-animation"></div></div><div id="speed-line" class="style-scope ytcp-uploads-file-picker-animation"><img alt="" class="style-scope ytcp-uploads-file-picker-animation" src="https://www.gstatic.com/youtube/img/creator/uploads/speed_line.svg"></div><div id="burst" class="style-scope ytcp-uploads-file-picker-animation"><div id="stroke" class="style-scope ytcp-uploads-file-picker-animation"></div></div></div></ytcp-uploads-file-picker-animation>
+  <p class="label style-scope ytcp-uploads-file-picker">将要上传的视频文件拖放到此处</p>
+  <div class="error-area style-scope ytcp-uploads-file-picker">
+    <yt-icon class="warning-icon style-scope ytcp-uploads-file-picker" compact="" icon="yt-studio-system-icons:warning"><span class="yt-icon-shape style-scope yt-icon ytSpecIconShapeHost"><div style="width: 100%; height: 100%; display: block; fill: currentcolor;"></div></span></yt-icon>
+    <div class="error-details style-scope ytcp-uploads-file-picker" id="error-message"></div>
+    <yt-formatted-string class="error-details style-scope ytcp-uploads-file-picker" is-empty=""><yt-attributed-string class="style-scope yt-formatted-string"></yt-attributed-string></yt-formatted-string>
+  </div>
+  <ytcp-button id="select-files-button" type="filled" class="style-scope ytcp-uploads-file-picker" tabindex="-1" button-style="default" icon-alignment="start" aria-disabled="false"><dom-if class="style-scope ytcp-button"></dom-if><div style="display: contents;" class="style-scope ytcp-button"><ytcp-button-shape><button class="ytcpButtonShapeImplHost ytcpButtonShapeImpl--filled ytcpButtonShapeImpl--mono ytcpButtonShapeImpl--size-m ytcpButtonShapeImpl--enable-backdrop-filter-experiment" title="" aria-label="选择文件" aria-disabled="false" tabindex="0" style=""><div class="ytcpButtonShapeImpl__button-text-content">选择文件</div><yt-touch-feedback-shape aria-hidden="true" class="ytSpecTouchFeedbackShapeHost ytSpecTouchFeedbackShapeTouchResponseInverse"><div class="ytSpecTouchFeedbackShapeStroke"></div><div class="ytSpecTouchFeedbackShapeFill"></div></yt-touch-feedback-shape></button></ytcp-button-shape></div></ytcp-button><input type="file" name="Filedata" multiple="" aria-hidden="true" tabindex="-1" style="position: absolute; overflow: hidden; height: 0px; width: 0px; opacity: 0; left: 0px; top: 0px; display: none;">
+  <p class="disclaimer style-scope ytcp-uploads-file-picker" id="disclaimer-html">向 YouTube 提交视频，即表示你确认同意 YouTube 的<a class="link-placeholder" href="https://www.youtube.com/t/terms" target="_blank">服务条款</a>和<a class="link-placeholder" href="https://www.youtube.com/yt/about/policies/" target="_blank">社区准则</a>。</p>
+  <p class="disclaimer style-scope ytcp-uploads-file-picker">
+    <ps-dom-if restamp="" class="style-scope ytcp-uploads-file-picker"><template is="dom-if"></template></ps-dom-if>
+    <span class="style-scope ytcp-uploads-file-picker">请确保你的视频不会侵犯他人的隐私或版权。</span>
+    <a target="_blank" class="style-scope ytcp-uploads-file-picker" href="https://www.youtube.com/yt/copyright">了解详情</a>
+  </p>
+</div>
+</ytcp-uploads-file-picker>
+    <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+    <ytcp-animatable id="scrollable-content" class="metadata-fade-in-section style-scope ytcp-uploads-dialog" style="box-sizing: border-box;">
+      <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+    </ytcp-animatable>
+    <ytcp-error-section feature="UPLOADS" class="style-scope ytcp-uploads-dialog" hidden=""><div class="hcenter-child style-scope ytcp-error-section">
+  <div id="error-block" class="style-scope ytcp-error-section">
+    <div id="error-image" class="style-scope ytcp-error-section">
+      <img alt="" class="style-scope ytcp-error-section" src="https://www.gstatic.com/youtube/img/creator/error_illustration_v2.svg">
+    </div>
+    <p id="error-message" class="style-scope ytcp-error-section">糟糕，出了点问题。</p>
+    <ytcp-button id="error-retry-button" class="style-scope ytcp-error-section" hidden="" tabindex="-1" type="tonal" button-style="default" icon-alignment="start" aria-disabled="false"><dom-if class="style-scope ytcp-button"></dom-if><div style="display: contents;" class="style-scope ytcp-button"><ytcp-button-shape><button class="ytcpButtonShapeImplHost ytcpButtonShapeImpl--tonal ytcpButtonShapeImpl--mono ytcpButtonShapeImpl--size-m ytcpButtonShapeImpl--enable-backdrop-filter-experiment" title="" aria-label="重试" aria-disabled="false" tabindex="0" style=""><div class="ytcpButtonShapeImpl__button-text-content">重试</div><yt-touch-feedback-shape aria-hidden="true" class="ytSpecTouchFeedbackShapeHost ytSpecTouchFeedbackShapeTouchResponse"><div class="ytSpecTouchFeedbackShapeStroke"></div><div class="ytSpecTouchFeedbackShapeFill"></div></yt-touch-feedback-shape></button></ytcp-button-shape></div></ytcp-button>
+  </div>
+</div>
+</ytcp-error-section>
+    <ytcp-animatable class="button-area metadata-fade-in-section style-scope ytcp-uploads-dialog">
+      <div class="inner-button-area style-scope ytcp-uploads-dialog">
+        <div class="left-button-area style-scope ytcp-uploads-dialog">
+          <ytcp-video-upload-progress class="style-scope ytcp-uploads-dialog" unified="" checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_COMPLETED"><dom-if restamp="" class="style-scope ytcp-video-upload-progress"></dom-if><span class="progress-label style-scope ytcp-video-upload-progress"></span><dom-if restamp="" class="style-scope ytcp-video-upload-progress"></dom-if><dom-if restamp="" class="style-scope ytcp-video-upload-progress"></dom-if></ytcp-video-upload-progress>
+          <ytcp-ve class="error-area style-scope ytcp-uploads-dialog" role="none">
+            <yt-icon class="error-icon style-scope ytcp-uploads-dialog" icon="yt-sys-icons:warning"><span class="yt-icon-shape style-scope yt-icon ytSpecIconShapeHost"><div style="width: 100%; height: 100%; display: block; fill: currentcolor;"></div></span></yt-icon>
+            <div class="error-short style-scope ytcp-uploads-dialog"> </div>
+            <div class="error-details style-scope ytcp-uploads-dialog" id="error-message"></div>
+            <yt-formatted-string class="error-details style-scope ytcp-uploads-dialog" is-empty=""><yt-attributed-string class="style-scope yt-formatted-string"></yt-attributed-string></yt-formatted-string>
+            <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+            <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+            <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+          </ytcp-ve>
+        </div>
+        <div class="right-button-area style-scope ytcp-uploads-dialog">
+          <ytcp-button id="back-button" type="tonal" class="style-scope ytcp-uploads-dialog" tabindex="-1" button-style="default" icon-alignment="start" hidden="" aria-disabled="false"><dom-if class="style-scope ytcp-button"></dom-if><div style="display: contents;" class="style-scope ytcp-button"><ytcp-button-shape><button class="ytcpButtonShapeImplHost ytcpButtonShapeImpl--tonal ytcpButtonShapeImpl--mono ytcpButtonShapeImpl--size-m ytcpButtonShapeImpl--enable-backdrop-filter-experiment" title="" aria-label="返回" aria-disabled="false" tabindex="0" style=""><div class="ytcpButtonShapeImpl__button-text-content">返回</div><yt-touch-feedback-shape aria-hidden="true" class="ytSpecTouchFeedbackShapeHost ytSpecTouchFeedbackShapeTouchResponse"><div class="ytSpecTouchFeedbackShapeStroke"></div><div class="ytSpecTouchFeedbackShapeFill"></div></yt-touch-feedback-shape></button></ytcp-button-shape></div></ytcp-button>
+          <ytcp-button id="next-button" type="filled" class="style-scope ytcp-uploads-dialog" tabindex="-1" button-style="default" icon-alignment="start" hidden="" aria-disabled="false"><dom-if class="style-scope ytcp-button"></dom-if><div style="display: contents;" class="style-scope ytcp-button"><ytcp-button-shape><button class="ytcpButtonShapeImplHost ytcpButtonShapeImpl--filled ytcpButtonShapeImpl--mono ytcpButtonShapeImpl--size-m ytcpButtonShapeImpl--enable-backdrop-filter-experiment" title="" aria-label="继续" aria-disabled="false" tabindex="0" style=""><div class="ytcpButtonShapeImpl__button-text-content">继续</div><yt-touch-feedback-shape aria-hidden="true" class="ytSpecTouchFeedbackShapeHost ytSpecTouchFeedbackShapeTouchResponseInverse"><div class="ytSpecTouchFeedbackShapeStroke"></div><div class="ytSpecTouchFeedbackShapeFill"></div></yt-touch-feedback-shape></button></ytcp-button-shape></div></ytcp-button>
+          <ytcp-button id="done-button" track-click="" type="filled" class="style-scope ytcp-uploads-dialog" disabled="" tabindex="-1" button-style="default" icon-alignment="start" hidden="" aria-disabled="true"><dom-if class="style-scope ytcp-button"></dom-if><div style="display: contents;" class="style-scope ytcp-button"><ytcp-button-shape><button class="ytcpButtonShapeImplHost ytcpButtonShapeImpl--filled ytcpButtonShapeImpl--size-m ytcpButtonShapeImpl--disabled ytcpButtonShapeImpl--enable-backdrop-filter-experiment" title="" disabled="true" aria-label="保存" aria-disabled="true" tabindex="0" style=""><div class="ytcpButtonShapeImpl__button-text-content">保存</div></button></ytcp-button-shape></div></ytcp-button>
+          <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+          <dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+        </div>
+      </div>
+    </ytcp-animatable>
+  </div>
+</tp-yt-paper-dialog>
+  <ytcp-latency-measurement trigger-route-regex="channel.videos" class="style-scope ytcp-uploads-dialog"><ytcp-latency-measurement-clock-stopper class="style-scope ytcp-latency-measurement"></ytcp-latency-measurement-clock-stopper><ps-dom-if restamp="" class="style-scope ytcp-latency-measurement"><template is="dom-if"></template></ps-dom-if></ytcp-latency-measurement>
+<dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+<dom-if restamp="" class="style-scope ytcp-uploads-dialog"></dom-if>
+<ytcp-uploads-file-analyzer id="file-analyzer" class="style-scope ytcp-uploads-dialog"><video id="local-video-player" hidden="" preload="metadata" class="style-scope ytcp-uploads-file-analyzer"></video></ytcp-uploads-file-analyzer>
+<ytcp-uploads-flow-complete-handler class="style-scope ytcp-uploads-dialog"></ytcp-uploads-flow-complete-handler>
+<div class="popup-host-behavior-backdrop" style="position: fixed; pointer-events: none; inset: 0px; background: rgb(0, 0, 0); opacity: 0.8; z-index: 2201;"></div></ytcp-uploads-dialog>
