@@ -283,6 +283,29 @@ test('--video with the form already up: nothing is uploaded again', async () => 
   assert.equal(r.ok, true)
 })
 
+const tabStorage = () => {
+  const m = new Map()
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) }
+}
+
+test('--video: a rerun after 立即投稿 was clicked does not upload the file again', async () => {
+  const session = tabStorage()
+  const form = formPage()
+  form.window.sessionStorage = session
+  const calls = []
+  const submitted = await load(form)({ ...ARGS, video: localVideo(form, calls) })
+  assert.equal(submitted.status, 'submitted', JSON.stringify(submitted))
+  assert.ok(session.getItem('cu-bilibili-published'))
+
+  // A rerun that finds neither the form nor the success screen.
+  const after = createPage({ html: DROP_ZONE, url: URL_FRAME })
+  after.window.sessionStorage = session
+  const r = await load(after)({ ...ARGS, video: localVideo(after, calls) })
+  assert.equal(r.status, 'publish_clicked')
+  assert.match(r.hint, /not uploaded again/)
+  assert.deepEqual(calls, [])
+})
+
 test('--video from a chrome-use without file args says to upgrade', async () => {
   const p = createPage({ html: DROP_ZONE, url: URL_FRAME })
   const r = await load(p)({ title: 'T', tags: 'a', video: './clip.mp4' })

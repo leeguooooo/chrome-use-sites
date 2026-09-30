@@ -179,6 +179,27 @@ async function(args) {
     }
   }
   const progress = (m) => { if (typeof args.progress === 'function') args.progress(m) }
+  // With --until-done a run that is lost right after the final click (the page
+  // navigating away) is run again, and that rerun no longer sees the form. It
+  // must not upload the same file a second time and publish it twice.
+  const fileStamp = localFile ? localFile.name + '|' + localFile.size : ''
+  const PUB_MARK = 'cu-bilibili-published'
+  const markPublishClick = () => {
+    if (!localFile) return
+    try { W.sessionStorage.setItem(PUB_MARK, JSON.stringify({ file: fileStamp, at: Date.now() })) } catch (_) {}
+  }
+  const publishClickedRecently = () => {
+    try {
+      const m = JSON.parse(W.sessionStorage.getItem(PUB_MARK) || 'null')
+      return m && m.file === fileStamp && Date.now() - m.at < 900000 ? m : null
+    } catch (_) { return null }
+  }
+  const ALREADY_CLICKED = (m) => ({
+    ok: false,
+    status: 'publish_clicked',
+    hint: 'A run in this tab already clicked publish for ' + localFile.name + ' ' + Math.round((Date.now() - m.at) / 1000) +
+      ' s ago, so the file is not uploaded again. Check the content page. To publish the same file again, use a new tab.',
+  })
 
   let titleInput = one('.video-title input')
   if (!titleInput) {
@@ -189,6 +210,8 @@ async function(args) {
     }
     if (localFile) {
       const RERUN = 'Run the same command again to continue (--until-done does it for you).'
+      const clicked = publishClickedRecently()
+      if (clicked) return ALREADY_CLICKED(clicked)
       const UPLOAD_PATH = '/platform/upload/video/frame'
       if (!uploadBox && W.location.pathname.indexOf(UPLOAD_PATH) !== 0) {
         progress('opening the 投稿 page')
@@ -557,6 +580,7 @@ async function(args) {
     cover,
     warnings,
   }
+  if (!draft) markPublishClick()
   click(button)
   const outcome = await waitFor(() => {
     const s = successState()
@@ -572,7 +596,7 @@ async function(args) {
       if (ok) return { saved: ok }
     }
     return null
-  }, Math.max(500, left() - 300), 100)
+  }, Math.min(20000, Math.max(500, left() - 300)), 100)
   if (outcome && outcome.captcha) return CAPTCHA
   if (outcome && outcome.toast) {
     return Object.assign({ error: 'Bilibili refused: ' + outcome.toast, hint: 'Fix it on the page (or in the arguments) and run again.' }, base)

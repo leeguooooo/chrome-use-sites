@@ -149,7 +149,7 @@ async function(args) {
     if (enabled(saveBtn())) {
       if (verification()) return VERIFY
       click(saveBtn())
-      const saved = await waitFor(() => !enabled(saveBtn()), Math.max(500, left() - 300), 100)
+      const saved = await waitFor(() => !enabled(saveBtn()), Math.min(20000, Math.max(500, left() - 300)), 100)
       if (!saved) return { ok: false, status: 'save_clicked', url, visibility: visKey, warnings, hint: 'Clicked 保存 but it did not settle in time; reload the edit page and check.' }
       return { ok: true, status: 'visibility_changed', from: was, url, visibility: visKey, warnings }
     }
@@ -190,9 +190,32 @@ async function(args) {
     }
   }
   const note = (m) => { if (typeof args.progress === 'function') args.progress(m) }
+  // With --until-done a run that is lost right after the final click (the page
+  // navigating away) is run again, and that rerun no longer sees the form. It
+  // must not upload the same file a second time and publish it twice.
+  const fileStamp = localFile ? localFile.name + '|' + localFile.size : ''
+  const PUB_MARK = 'cu-youtube-published'
+  const markPublishClick = () => {
+    if (!localFile) return
+    try { W.sessionStorage.setItem(PUB_MARK, JSON.stringify({ file: fileStamp, at: Date.now() })) } catch (_) {}
+  }
+  const publishClickedRecently = () => {
+    try {
+      const m = JSON.parse(W.sessionStorage.getItem(PUB_MARK) || 'null')
+      return m && m.file === fileStamp && Date.now() - m.at < 900000 ? m : null
+    } catch (_) { return null }
+  }
+  const ALREADY_CLICKED = (m) => ({
+    ok: false,
+    status: 'publish_clicked',
+    hint: 'A run in this tab already clicked publish for ' + localFile.name + ' ' + Math.round((Date.now() - m.at) / 1000) +
+      ' s ago, so the file is not uploaded again. Check the content page. To publish the same file again, use a new tab.',
+  })
   let justAttached = false
   if (localFile && !(isOpen() && dialog.getAttribute('video-id'))) {
     const RERUN = 'Run the same command again to continue (--until-done does it for you).'
+    const clicked = publishClickedRecently()
+    if (clicked) return ALREADY_CLICKED(clicked)
     if (/accounts\.google\.com|ServiceLogin/.test(String(W.location.href))) {
       return { error: 'Not signed in to YouTube Studio', hint: 'Sign in at https://studio.youtube.com in this browser, then retry.' }
     }
@@ -218,11 +241,16 @@ async function(args) {
     if (live && live.getAttribute('workflow-step') === 'SELECT_FILES' && !live.getAttribute('video-id')) {
       const SEL = 'ytcp-uploads-dialog input[type="file"]'
       if (!D.querySelector(SEL)) return { error: 'No file input in the upload dialog', hint: 'Studio changed; upload with chrome-use upload instead.' }
-      note('uploading ' + localFile.name)
-      try {
-        await localFile.setOn(SEL)
-      } catch (e) {
-        return { error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e) }
+      // A rerun can find the dialog still on file selection while Studio is
+      // taking the file in. It waits again; it does not hand the file over twice.
+      if (live.__cuAttached !== fileStamp) {
+        note('uploading ' + localFile.name)
+        try {
+          await localFile.setOn(SEL)
+        } catch (e) {
+          return { error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e) }
+        }
+        live.__cuAttached = fileStamp
       }
       justAttached = true
     }
@@ -551,6 +579,7 @@ async function(args) {
     return { error: 'The publish button is disabled', url, done, warnings }
   }
   const base = { url, visibility: visKey, title: title, warnings }
+  markPublishClick()
   click(doneBtn)
   const outcome = await waitFor(() => {
     if (verification()) return { verify: true }
@@ -560,7 +589,7 @@ async function(args) {
       /仍在检查|仍在处理|still (checking|processing)/i.test(text(m)))
     if (confirm) return { confirm: text(confirm).slice(0, 200) }
     return null
-  }, Math.max(500, left() - 300), 100)
+  }, Math.min(20000, Math.max(500, left() - 300)), 100)
   if (outcome && outcome.verify) return VERIFY
   if (outcome && outcome.confirm) {
     return Object.assign({ ok: false, status: 'confirm_needed', done, hint: 'Studio asks: ' + outcome.confirm + ' Answer it by hand.' }, base)

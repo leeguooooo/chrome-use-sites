@@ -151,6 +151,27 @@ async function(args) {
     }
   }
   const progress = (m) => { if (typeof args.progress === 'function') args.progress(m) }
+  // With --until-done a run that is lost right after the final click (the page
+  // navigating away) is run again, and that rerun no longer sees the form. It
+  // must not upload the same file a second time and publish it twice.
+  const fileStamp = localFile ? localFile.name + '|' + localFile.size : ''
+  const PUB_MARK = 'cu-douyin-published'
+  const markPublishClick = () => {
+    if (!localFile) return
+    try { W.sessionStorage.setItem(PUB_MARK, JSON.stringify({ file: fileStamp, at: Date.now() })) } catch (_) {}
+  }
+  const publishClickedRecently = () => {
+    try {
+      const m = JSON.parse(W.sessionStorage.getItem(PUB_MARK) || 'null')
+      return m && m.file === fileStamp && Date.now() - m.at < 900000 ? m : null
+    } catch (_) { return null }
+  }
+  const ALREADY_CLICKED = (m) => ({
+    ok: false,
+    status: 'publish_clicked',
+    hint: 'A run in this tab already clicked publish for ' + localFile.name + ' ' + Math.round((Date.now() - m.at) / 1000) +
+      ' s ago, so the file is not uploaded again. Check the content page. To publish the same file again, use a new tab.',
+  })
 
   if (!onPost) {
     if (/login|passport/.test(W.location.href) || all('input[type="file"]').length === 0 && /登录|扫码/.test(text(D.body).slice(0, 400))) {
@@ -158,6 +179,8 @@ async function(args) {
     }
     if (localFile) {
       const RERUN = 'Run the same command again to continue (--until-done does it for you).'
+      const clicked = publishClickedRecently()
+      if (clicked) return ALREADY_CLICKED(clicked)
       if (!onUpload) {
         progress('opening the upload page')
         W.location.href = UPLOAD_URL
@@ -167,10 +190,9 @@ async function(args) {
       // Douyin moves to /content/post/video once the upload starts. A rerun
       // that still lands here must wait for that, not hand the file over twice.
       const MARK = 'cu-douyin-upload'
-      const stamp = localFile.name + '|' + localFile.size
       let prev = null
       try { prev = JSON.parse(W.sessionStorage.getItem(MARK) || 'null') } catch (_) { prev = null }
-      if (!(prev && prev.file === stamp && Date.now() - prev.at < 120000)) {
+      if (!(prev && prev.file === fileStamp && Date.now() - prev.at < 120000)) {
         const input = await waitFor(() => all('input[type="file"]').find((i) => /video|\.mp4/i.test(i.getAttribute('accept') || '')), 5000)
         if (!input) return { error: 'No video file input on the upload page', hint: 'The upload page changed; upload with chrome-use upload instead.' }
         input.setAttribute('data-cu-file', 'video')
@@ -180,7 +202,7 @@ async function(args) {
         } catch (e) {
           return { error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e) }
         }
-        try { W.sessionStorage.setItem(MARK, JSON.stringify({ file: stamp, at: Date.now() })) } catch (_) {}
+        try { W.sessionStorage.setItem(MARK, JSON.stringify({ file: fileStamp, at: Date.now() })) } catch (_) {}
       }
       // The navigation ends this run; if it is slow, say so and let the rerun pick it up.
       await waitFor(() => false, 4000, 200)
@@ -456,6 +478,7 @@ async function(args) {
   if (!button) return { error: 'No 「' + label + '」 button on the page', hint: 'The post page changed; this adapter needs updating.' }
   const toasts = () => all('.semi-toast-content-text, [class*="toast-content"]').map(text).filter(Boolean)
   const toastsBefore = toasts()
+  if (!draft) markPublishClick()
   click(button)
   const base = { title, topics, skipped_topics: skipped, declaration, visibility: VISIBILITY[visKey], warnings }
   const outcome = await waitFor(() => {
@@ -465,7 +488,7 @@ async function(args) {
     const bad = fresh.find((t) => /请|失败|不能|错误|超过|最少|至少|上传中/.test(t))
     if (bad) return { toast: bad }
     return null
-  }, Math.max(500, left() - 300), 100)
+  }, Math.min(20000, Math.max(500, left() - 300)), 100)
   if (outcome && outcome.captcha) return CAPTCHA
   if (outcome && outcome.toast) {
     return Object.assign({ error: 'Douyin refused: ' + outcome.toast, hint: 'Fix it on the page (or in the arguments) and run again.' }, base)

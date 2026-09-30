@@ -417,6 +417,34 @@ test('--video on the post page: the upload is done, the form is filled', async (
   assert.deepEqual(calls, [])
 })
 
+test('--video: a rerun after 发布 was clicked does not upload the file again', async () => {
+  // The publish run: on the post page, with the file arg present.
+  const session = storage()
+  const post = postPage()
+  post.window.sessionStorage = session
+  const calls = []
+  const published = await load(post)({ title: 'Hello', video: localVideo(post, calls) })
+  assert.equal(published.ok, true, JSON.stringify(published))
+  assert.ok(session.getItem('cu-douyin-published'), 'the click is recorded before it happens')
+
+  // --until-done reruns after a lost run; the tab is on the content manager now.
+  const after = createPage({ html: '<div>作品管理</div>', url: 'https://creator.douyin.com/creator-micro/content/manage' })
+  after.window.sessionStorage = session
+  const r = await load(after)({ title: 'Hello', video: localVideo(after, calls) })
+  assert.equal(r.status, 'publish_clicked')
+  assert.match(r.hint, /not uploaded again/)
+  assert.equal(after.window.location.href, 'https://creator.douyin.com/creator-micro/content/manage')
+  assert.deepEqual(calls, [])
+})
+
+test('--video: saving a draft does not block a later upload of the same file', async () => {
+  const session = storage()
+  const post = postPage()
+  post.window.sessionStorage = session
+  await load(post)({ title: 'Hello', draft: 'true', video: localVideo(post, []) })
+  assert.equal(session.getItem('cu-douyin-published'), null)
+})
+
 test('--video from a chrome-use without file args says to upgrade', async () => {
   const p = createPage({ html: fixture('upload-page.html'), url: UPLOAD_URL })
   const r = await load(p)({ title: 'T', video: './clip.mp4' })
