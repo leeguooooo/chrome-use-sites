@@ -333,6 +333,67 @@ private`, then discard the draft with 放弃. The adapter's tests run against th
 post page captured in `douyin-creator/fixtures/` (`node --test`); the one live
 check was a private draft of a 3 s test clip, discarded afterwards.
 
+### `bilibili-creator/video-publish` — publish a video on Bilibili (投稿)
+
+Two steps in one tab, as with Douyin: hand the file to the 投稿 page, then let
+the adapter fill the form, wait for 上传完成 and click 立即投稿.
+
+```sh
+# 1. upload: the form opens below the file list
+chrome-use open https://member.bilibili.com/platform/upload/video/frame
+chrome-use upload '.bcc-upload-wrapper input[type=file]' ./video.mp4
+
+# 2. check the filled form first (optional), then submit; re-run while it says incomplete / uploading
+chrome-use site bilibili-creator/video-publish \
+  --title "让 Claude Code 和 Codex 互相叫醒" --description "$(cat desc.txt)" \
+  --tags "Claude Code,Codex,AI编程,开源" --category 科技数码 \
+  --type self --declaration ai --submit false
+chrome-use site bilibili-creator/video-publish …same arguments without --submit false
+```
+
+| arg | values |
+| --- | --- |
+| `--title` | at most 80 characters |
+| `--description` | 简介, at most 2000 characters; newlines become paragraphs |
+| `--tags` | comma-separated, 1–10, each ≤ 20 characters. A tag found in 推荐标签 is clicked there, the rest are typed and entered. Tags already on the form that are not listed are removed (Bilibili pre-fills some) |
+| `--category` | 分区 as the menu shows it. The menu is flat now (科技数码, 人工智能, 知识 …; 计算机技术 / 软件应用 are no longer entries); a path like `科技 → 计算机技术` is matched segment by segment and lands on 科技数码, with a warning. Omit to keep Bilibili's pick |
+| `--type` | `self` (default): ticks 内容为自制：未经作者允许，禁止转载 (copyright 自制). `repost`: picks 内容为转载 and fills 转载来源 from `--source` |
+| `--declaration` | 创作声明: `ai` 含AI生成内容, `fiction`, `promo`, `opinion`, `none` 内容无需标注 (used when the field is empty). It is one menu with 内容为转载, so it cannot be combined with `--type repost` |
+| `--visibility` | `public` (default, 公开可见) / `private` (仅自己可见) |
+| `--draft` | `true` clicks 存草稿 instead of 立即投稿 |
+| `--submit` | `false` fills everything and clicks nothing, to look at the form first |
+
+Returns `{ok, status, bvid, url, tags, skipped_tags, removed_tags, statement, self_made,
+category, visibility, cover, warnings}` or `{error, hint}`. `status` is `submitted`
+(with `bvid` and `https://www.bilibili.com/video/<bvid>`), `draft`, `filled`,
+`uploading` (form filled, file not done yet), `incomplete` (out of time, re-run),
+`dialog` (Bilibili opened a confirmation after the click; it is reported, never
+answered), `already_submitted` (the tab shows a finished submit), or
+`submit_clicked` (no confirmation seen: check 稿件管理 before re-running).
+
+How it works:
+
+- **Real DOM events only**, on the page's own widgets; no Bilibili API calls (its web
+  APIs need wbi signing). The Vue component state is only *read*: whether the 自制 box
+  is ticked, and `completeBvid` after the submit.
+- **Tags** are checked by Bilibili when entered. A refusal comes back as a
+  `toaster-v2-wrp` toast and lands in `skipped_tags` with its text, e.g. 程序员:
+  当前tag为话题专用，不允许自定义添加 (topic-only tags are joined via 参与话题, which this
+  adapter does not do).
+- **简介** is a Quill editor: `execCommand('insertText')` per line and an Enter key
+  per paragraph, then the text is read back and compared.
+- **Cover**: Bilibili's is kept. If the slot is still empty, the first recommended
+  frame is clicked.
+- **7 s budget** inside chrome-use's ~8 s window; each step checks before it acts, so a
+  re-run continues without doubling tags or text. Typed tags take about half a
+  second each, so a first run with many tags usually stops with `incomplete` once.
+- A shown captcha / geetest / 安全验证 stops the run with an error.
+
+**Risk.** This publishes to your real account, and Bilibili is treated like
+Xiaohongshu: one live run, never a loop (see AGENTS.md). Tests run against the form
+captured in `bilibili-creator/fixtures/` (`node --test`). The live check was one
+real publish (BV1fqad6TET7), filled once with `--submit false`, then submitted.
+
 ## Adding an adapter
 
 Drop `packname/command.js` in this repo and follow the shape of the existing files. Current chrome-use versions discover `.js` adapters directly from the repository tree. Also add the path to `PACKS` in `install.sh` while the legacy v1.5.77 installer remains supported.
