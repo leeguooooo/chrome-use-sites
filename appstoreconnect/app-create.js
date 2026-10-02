@@ -46,23 +46,41 @@ async function (args) {
   }
 
   // One compound document, as the web UI sends it: the app, its first
-  // version and the primary-language name, linked by local ids.
+  // version with a primary-language version localization, and the app info
+  // carrying the name, all linked by local ids. Two things Apple enforces:
+  //  - the name only goes on appInfoLocalizations; on the app itself it is
+  //    rejected (409);
+  //  - the local ids follow the web UI's own scheme (store-version-<platform>,
+  //    new-<platform>VersionLocalization-id, ...). Shorter ids such as
+  //    ${new-version} / ${new-versionLoc} were rejected on a fresh bundle id
+  //    with "You must provide a value for the relationship
+  //    'appStoreVersionLocalizations'", while this scheme created the app.
+  const p = platform.toLowerCase();
+  const id = (name) => '${' + name + '}';
+  const versionId = id('store-version-' + p);
+  const versionLocId = id('new-' + p + 'VersionLocalization-id');
+  const appInfoId = id('new-appInfo-id');
+  const appInfoLocId = id('new-appInfoLocalization-id');
   const payload = {
     data: {
       type: 'apps',
-      attributes: { name: args.name, sku: args.sku, primaryLocale: locale, bundleId: args.bundle_id },
+      attributes: { sku: args.sku, primaryLocale: locale, bundleId: args.bundle_id },
       relationships: {
-        appStoreVersions: { data: [{ type: 'appStoreVersions', id: '${new-version}' }] },
-        appInfos: { data: [{ type: 'appInfos', id: '${new-appInfo}' }] }
+        appStoreVersions: { data: [{ type: 'appStoreVersions', id: versionId }] },
+        appInfos: { data: [{ type: 'appInfos', id: appInfoId }] }
       }
     },
     included: [
-      { type: 'appStoreVersions', id: '${new-version}', attributes: { platform, versionString: version } },
       {
-        type: 'appInfos', id: '${new-appInfo}',
-        relationships: { appInfoLocalizations: { data: [{ type: 'appInfoLocalizations', id: '${new-loc}' }] } }
+        type: 'appStoreVersions', id: versionId, attributes: { platform, versionString: version },
+        relationships: { appStoreVersionLocalizations: { data: [{ type: 'appStoreVersionLocalizations', id: versionLocId }] } }
       },
-      { type: 'appInfoLocalizations', id: '${new-loc}', attributes: { locale, name: args.name } }
+      { type: 'appStoreVersionLocalizations', id: versionLocId, attributes: { locale } },
+      {
+        type: 'appInfos', id: appInfoId,
+        relationships: { appInfoLocalizations: { data: [{ type: 'appInfoLocalizations', id: appInfoLocId }] } }
+      },
+      { type: 'appInfoLocalizations', id: appInfoLocId, attributes: { locale, name: args.name } }
     ]
   };
   const r = await fetch(iris + '/apps', {
@@ -76,7 +94,7 @@ async function (args) {
   const body = await r.json().catch(() => ({}));
   if (!r.ok) {
     const errs = (body.errors || []).map((e) => e.detail || e.title).filter(Boolean);
-    return { error: 'App not created (HTTP ' + r.status + ')', reasons: errs, hint: /bundle/i.test(errs.join(' ')) ? 'Register the bundle id in the developer portal first' : undefined };
+    return { error: 'App not created (HTTP ' + r.status + ')' + (errs.length ? ': ' + errs.join('; ') : ''), reasons: errs, hint: /bundle/i.test(errs.join(' ')) ? 'Register the bundle id in the developer portal first' : undefined };
   }
   const app = body.data;
   return {
