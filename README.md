@@ -503,6 +503,20 @@ The site encrypts both request and response bodies, so the adapter drives the pa
 - `rows`: `{pool, period, place, employer, personal, base_est}` per month. `personal` is the employee's share, normally 8% of the contribution base, so `base_est = personal / 0.08` (flexible-employment months are paid differently, so `base_est` does not apply to them).
 - `summary` per pool (months, first/last period, personal total), `distinct_months`, and `overlapping_months` (months paid in two pools at once; only one counts when the pools are merged).
 
+### `appstoreconnect/` — App Store Connect apps and builds
+
+Runs in your signed-in [appstoreconnect.apple.com](https://appstoreconnect.apple.com) tab and calls the same `/iris/v1` JSON:API the web UI uses. Creating an app record is the one step the App Store Connect API key cannot do (it returns 403); a signed-in session can.
+
+```sh
+chrome-use site appstoreconnect/apps                                  # every app: name, bundle id, SKU, Apple ID
+chrome-use site appstoreconnect/app-create --name "My App" --bundle_id com.example.app --sku example-app --locale zh-Hans
+chrome-use site appstoreconnect/builds --bundle_id com.example.app    # newest uploads and their processing state
+```
+
+- `app-create` needs the bundle id registered in the developer portal first (the API key can do that). It is idempotent: if an app with that bundle id exists, it returns it with `created: false` instead of making a second one. On failure, `reasons` carries Apple's own messages, such as a name already taken.
+- Sign in first, including two-factor authentication; a person has to do that (`chrome-use session handoff`). A signed-out session returns `hint: "Not signed in…"` instead of an empty list.
+- Creating an app needs the Admin or App Manager role.
+
 ## Adding an adapter
 
 Drop `packname/command.js` in this repo and follow the shape of the existing files. Current chrome-use versions discover `.js` adapters directly from the repository tree. Also add the path to `PACKS` in `install.sh` while the legacy v1.5.77 installer remains supported.
