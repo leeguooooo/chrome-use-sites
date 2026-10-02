@@ -25,7 +25,8 @@ juejin/article-publish.js csdn/article-publish.js segmentfault/article-publish.j
 zhihu/article-publish.js
 douyin-creator/video-publish.js
 youtube-studio/video-upload.js
-bilibili-creator/video-publish.js"
+bilibili-creator/video-publish.js
+si12333/pension-payments.js"
 
 # Files a pack needs that live in another repo. The twitter adapters call
 # findGraphQLQueryId / findTransactionIdGenerator, which are defined in the
@@ -52,7 +53,7 @@ done
 
 echo "✓ done"
 echo
-echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|douyin-creator|youtube-studio|bilibili-creator|juejin|csdn|segmentfault|zhihu)/'"
+echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|douyin-creator|youtube-studio|bilibili-creator|juejin|csdn|segmentfault|zhihu|si12333)/'"
 echo "Try:     chrome-use site twitter/search \"chrome-use\""
 echo
 echo "Note: adapters run in YOUR logged-in browser tab, so you must be"

@@ -487,6 +487,22 @@ Xiaohongshu: one live run, never a loop (see AGENTS.md). Tests run against the f
 captured in `bilibili-creator/fixtures/` (`node --test`). The live check was one
 real publish (BV1fqad6TET7), filled once with `--submit false`, then submitted.
 
+### `si12333/pension-payments` — China pension contribution history (国家社会保险公共服务平台)
+
+Read-only. Lists every month of 企业职工基本养老保险 contributions on [si.12333.gov.cn](https://si.12333.gov.cn), across every 参保地 (provincial pool) and year, in one command.
+
+```sh
+chrome-use site si12333/pension-payments                 # 1995 to this year, every pool
+chrome-use site si12333/pension-payments --from 2015 --to 2023 --region 北京
+```
+
+Sign in first: the site only accepts a scan with the 掌上12333 app or the e-social-security card, so a person has to do it (`chrome-use session handoff`). The session expires after a while; the adapter then returns `{"error": "not logged in"}`.
+
+The site encrypts both request and response bodies, so the adapter drives the page's own query form instead of calling the API. Each query covers at most 3 years and asks which pool to show, so the adapter walks every pool × 3-year window. It returns:
+
+- `rows`: `{pool, period, place, employer, personal, base_est}` per month. `personal` is the employee's share, normally 8% of the contribution base, so `base_est = personal / 0.08` (flexible-employment months are paid differently, so `base_est` does not apply to them).
+- `summary` per pool (months, first/last period, personal total), `distinct_months`, and `overlapping_months` (months paid in two pools at once; only one counts when the pools are merged).
+
 ## Adding an adapter
 
 Drop `packname/command.js` in this repo and follow the shape of the existing files. Current chrome-use versions discover `.js` adapters directly from the repository tree. Also add the path to `PACKS` in `install.sh` while the legacy v1.5.77 installer remains supported.
