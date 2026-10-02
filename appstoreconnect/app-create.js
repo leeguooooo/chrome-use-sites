@@ -46,18 +46,23 @@ async function (args) {
   }
 
   // One compound document, as the web UI sends it: the app, its first
-  // version and the primary-language name, linked by local ids.
+  // version and the primary-language name, linked by local ids. The name
+  // only goes on the localization; Apple rejects it on the app (409).
   const payload = {
     data: {
       type: 'apps',
-      attributes: { name: args.name, sku: args.sku, primaryLocale: locale, bundleId: args.bundle_id },
+      attributes: { sku: args.sku, primaryLocale: locale, bundleId: args.bundle_id },
       relationships: {
         appStoreVersions: { data: [{ type: 'appStoreVersions', id: '${new-version}' }] },
         appInfos: { data: [{ type: 'appInfos', id: '${new-appInfo}' }] }
       }
     },
     included: [
-      { type: 'appStoreVersions', id: '${new-version}', attributes: { platform, versionString: version } },
+      {
+        type: 'appStoreVersions', id: '${new-version}', attributes: { platform, versionString: version },
+        relationships: { appStoreVersionLocalizations: { data: [{ type: 'appStoreVersionLocalizations', id: '${new-versionLoc}' }] } }
+      },
+      { type: 'appStoreVersionLocalizations', id: '${new-versionLoc}', attributes: { locale } },
       {
         type: 'appInfos', id: '${new-appInfo}',
         relationships: { appInfoLocalizations: { data: [{ type: 'appInfoLocalizations', id: '${new-loc}' }] } }
@@ -76,7 +81,7 @@ async function (args) {
   const body = await r.json().catch(() => ({}));
   if (!r.ok) {
     const errs = (body.errors || []).map((e) => e.detail || e.title).filter(Boolean);
-    return { error: 'App not created (HTTP ' + r.status + ')', reasons: errs, hint: /bundle/i.test(errs.join(' ')) ? 'Register the bundle id in the developer portal first' : undefined };
+    return { error: 'App not created (HTTP ' + r.status + ')' + (errs.length ? ': ' + errs.join('; ') : ''), reasons: errs, hint: /bundle/i.test(errs.join(' ')) ? 'Register the bundle id in the developer portal first' : undefined };
   }
   const app = body.data;
   return {

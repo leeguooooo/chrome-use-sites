@@ -66,7 +66,7 @@ test('app-create posts one compound document linked by local ids', async () => {
     'GET /iris/v1/apps': { status: 200, json: { data: [] } },
     'POST /iris/v1/apps': (u, body) => ({
       status: 201,
-      json: { data: { id: '6700000002', attributes: { name: body.data.attributes.name, bundleId: body.data.attributes.bundleId, sku: body.data.attributes.sku } } },
+      json: { data: { id: '6700000002', attributes: { name: body.included.find((i) => i.type === 'appInfoLocalizations').attributes.name, bundleId: body.data.attributes.bundleId, sku: body.data.attributes.sku } } },
     }),
   })
   const r = await load('app-create.js', env)({ name: 'iPhone Use Remote', bundle_id: 'com.example.remote', sku: 'remote', locale: 'zh-Hans' })
@@ -75,12 +75,17 @@ test('app-create posts one compound document linked by local ids', async () => {
   assert.equal(r.url, ORIGIN + '/apps/6700000002')
   const post = env.calls.find((c) => c.method === 'POST')
   assert.equal(post.opts.headers['X-Csrf-Itc'], 'itc')
-  assert.deepEqual(post.body.data.attributes, { name: 'iPhone Use Remote', sku: 'remote', primaryLocale: 'zh-Hans', bundleId: 'com.example.remote' })
+  assert.deepEqual(post.body.data.attributes, { sku: 'remote', primaryLocale: 'zh-Hans', bundleId: 'com.example.remote' })
   const ids = new Set(post.body.included.map((i) => i.type + ':' + i.id))
   for (const rel of Object.values(post.body.data.relationships))
     for (const d of rel.data) assert.ok(ids.has(d.type + ':' + d.id), 'dangling ' + d.type)
   const version = post.body.included.find((i) => i.type === 'appStoreVersions')
   assert.deepEqual(version.attributes, { platform: 'IOS', versionString: '1.0' })
+  for (const inc of post.body.included)
+    for (const rel of Object.values(inc.relationships || {}))
+      for (const d of rel.data) assert.ok(ids.has(d.type + ':' + d.id), 'dangling ' + d.type)
+  const versionLoc = post.body.included.find((i) => i.type === 'appStoreVersionLocalizations')
+  assert.deepEqual(versionLoc.attributes, { locale: 'zh-Hans' })
   const loc = post.body.included.find((i) => i.type === 'appInfoLocalizations')
   assert.deepEqual(loc.attributes, { locale: 'zh-Hans', name: 'iPhone Use Remote' })
 })
@@ -91,7 +96,7 @@ test('app-create surfaces Apple\'s reasons on a 409', async () => {
     'POST /iris/v1/apps': { status: 409, json: { errors: [{ detail: 'The App Name you entered is already being used.' }] } },
   })
   const r = await load('app-create.js', env)({ name: 'Taken', bundle_id: 'com.example.t', sku: 't' })
-  assert.match(r.error, /409/)
+  assert.match(r.error, /409\): The App Name/)
   assert.deepEqual(r.reasons, ['The App Name you entered is already being used.'])
 })
 
