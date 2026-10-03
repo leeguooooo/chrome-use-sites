@@ -66,7 +66,7 @@ test('app-create posts one compound document linked by local ids', async () => {
     'GET /iris/v1/apps': { status: 200, json: { data: [] } },
     'POST /iris/v1/apps': (u, body) => ({
       status: 201,
-      json: { data: { id: '6700000002', attributes: { name: body.data.attributes.name, bundleId: body.data.attributes.bundleId, sku: body.data.attributes.sku } } },
+      json: { data: { id: '6700000002', attributes: { name: body.included.find((i) => i.type === 'appInfoLocalizations').attributes.name, bundleId: body.data.attributes.bundleId, sku: body.data.attributes.sku } } },
     }),
   })
   const r = await load('app-create.js', env)({ name: 'iPhone Use Remote', bundle_id: 'com.example.remote', sku: 'remote', locale: 'zh-Hans' })
@@ -75,12 +75,19 @@ test('app-create posts one compound document linked by local ids', async () => {
   assert.equal(r.url, ORIGIN + '/apps/6700000002')
   const post = env.calls.find((c) => c.method === 'POST')
   assert.equal(post.opts.headers['X-Csrf-Itc'], 'itc')
-  assert.deepEqual(post.body.data.attributes, { name: 'iPhone Use Remote', sku: 'remote', primaryLocale: 'zh-Hans', bundleId: 'com.example.remote' })
+  // the name lives only on the app info localization; Apple rejects it on the app
+  assert.deepEqual(post.body.data.attributes, { sku: 'remote', primaryLocale: 'zh-Hans', bundleId: 'com.example.remote' })
+  // every relationship, top level and nested, resolves to an included resource
   const ids = new Set(post.body.included.map((i) => i.type + ':' + i.id))
-  for (const rel of Object.values(post.body.data.relationships))
-    for (const d of rel.data) assert.ok(ids.has(d.type + ':' + d.id), 'dangling ' + d.type)
+  const rels = [post.body.data, ...post.body.included].flatMap((r) => Object.values(r.relationships || {}))
+  for (const rel of rels) for (const d of rel.data) assert.ok(ids.has(d.type + ':' + d.id), 'dangling ' + d.type)
   const version = post.body.included.find((i) => i.type === 'appStoreVersions')
   assert.deepEqual(version.attributes, { platform: 'IOS', versionString: '1.0' })
+  // local ids follow the web UI scheme; the shorter ${new-version} style was rejected live
+  assert.equal(version.id, '${store-version-ios}')
+  const vloc = post.body.included.find((i) => i.type === 'appStoreVersionLocalizations')
+  assert.equal(vloc.id, '${new-iosVersionLocalization-id}')
+  assert.deepEqual(vloc.attributes, { locale: 'zh-Hans' })
   const loc = post.body.included.find((i) => i.type === 'appInfoLocalizations')
   assert.deepEqual(loc.attributes, { locale: 'zh-Hans', name: 'iPhone Use Remote' })
 })
