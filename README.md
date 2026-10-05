@@ -29,7 +29,7 @@ Adapters run in your logged-in browser tab, so **sign in to the target site firs
 
 ## Packs
 
-### `twitter/` — X search and conversation threads
+### `twitter/` — X search, conversation threads, and posting
 
 The official Twitter adapters return a stable engagement schema. Every tweet
 includes `likes`, `retweets`, `replies`, `bookmarks`, and numeric `views`.
@@ -38,6 +38,19 @@ When X omits or restricts a metric, its value is `null`.
 ```sh
 chrome-use site twitter/search "chrome-use" --count 20
 chrome-use site twitter/thread 2048506314163458106
+```
+
+`twitter/post` posts from the logged-in account through X's own `CreateTweet`
+call (with the same transaction-id header the web app sends). The text is
+checked against X's 280-character weighting first — CJK characters count 2,
+every link 23 — and a refusal says nothing was posted. `--dry_run true` returns
+what would be sent; `--reply_to <id|url>` posts a reply, which is how a thread
+is built.
+
+```sh
+chrome-use site twitter/post --text @tweet.txt --dry_run true
+chrome-use site twitter/post --text @tweet.txt
+chrome-use site twitter/post --text @second.txt --reply_to https://x.com/you/status/123
 ```
 
 ### `sggit/` — self-hosted Gogs (`sg-git.pwtk.cc`)

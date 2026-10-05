@@ -159,3 +159,62 @@ test('install.sh fetches the helper the twitter adapters call into', () => {
     assert.match(helper[1], /\/[0-9a-f]{40}\/twitter\/_helper\.js$/, 'pin the helper to a full commit SHA')
   }
 })
+
+// twitter/post: weighting, dry run, reply, success and refusal paths.
+test('post counts CJK as 2 and links as 23, refusing over 280 before any request', async () => {
+  let called = false
+  const adapter = loadAdapter('./post.js', { fetch: async () => { called = true } })
+  const ok = await adapter({ text: '你好 https://github.com/leeguooooo/iphone-use/with/a/very/long/path', dry_run: 'true' })
+  assert.equal(ok.weighted_length, 2 * 2 + 1 + 23)
+  const long = await adapter({ text: '字'.repeat(141) })
+  assert.match(long.error, /too long: 282 of 280/)
+  assert.equal(called, false)
+})
+
+test('post dry run returns the variables, including a reply target from a URL', async () => {
+  const adapter = loadAdapter('./post.js', { fetch: async () => assert.fail('dry run must not post') })
+  const r = await adapter({ text: 'hi', reply_to: 'https://x.com/a/status/42', dry_run: 'true' })
+  assert.equal(r.dry_run, true)
+  assert.equal(r.variables.tweet_text, 'hi')
+  assert.deepEqual(r.variables.reply, { in_reply_to_tweet_id: '42', exclude_reply_user_ids: [] })
+})
+
+test('post sends CreateTweet with a transaction id and returns the tweet url', async () => {
+  let seen
+  const adapter = loadAdapter('./post.js', {
+    fetch: async (url, init) => {
+      seen = { url, init }
+      return {
+        ok: true,
+        json: async () => ({ data: { create_tweet: { tweet_results: { result: {
+          rest_id: '777', core: { user_results: { result: { legacy: { screen_name: 'leeguooooo' } } } },
+        } } } } }),
+      }
+    },
+  })
+  const r = await adapter({ text: 'hello' })
+  assert.equal(r.ok, true)
+  assert.equal(r.url, 'https://x.com/leeguooooo/status/777')
+  assert.match(seen.url, /\/CreateTweet$/)
+  assert.equal(seen.init.method, 'POST')
+  assert.equal(seen.init.headers['X-Client-Transaction-Id'], 'transaction-id')
+  assert.equal(JSON.parse(seen.init.body).variables.tweet_text, 'hello')
+})
+
+test('post reports a refusal as not posted, and a missing id as unknown', async () => {
+  const refused = loadAdapter('./post.js', {
+    fetch: async () => ({ ok: true, json: async () => ({ errors: [{ message: 'Status is a duplicate.' }] }) }),
+  })
+  const r1 = await refused({ text: 'hello' })
+  assert.match(r1.error, /duplicate/)
+  assert.match(r1.hint, /Nothing was posted/)
+  const empty = loadAdapter('./post.js', { fetch: async () => ({ ok: true, json: async () => ({ data: {} }) }) })
+  const r2 = await empty({ text: 'hello' })
+  assert.equal(r2.outcome, 'unknown')
+})
+
+test('post needs a session', async () => {
+  const adapter = loadAdapter('./post.js', { document: { cookie: '' } })
+  const r = await adapter({ text: 'hello' })
+  assert.match(r.error, /Not signed in/)
+})
