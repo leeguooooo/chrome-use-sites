@@ -6,11 +6,12 @@
   "args": {
     "text": {"required": true, "description": "Tweet text (pass a file with --text @tweet.txt). Checked against X's 280-character weighting before anything is sent: CJK characters count 2, every link counts 23"},
     "reply_to": {"required": false, "description": "Tweet ID or URL to reply to"},
+    "media": {"required": false, "type": "file", "input": "#cu-twitter-post-media", "description": "Local video (mp4/mov) or image to attach. Uploaded the way the web app does (chunked INIT/APPEND/FINALIZE, then waiting for X to process a video) before the tweet is posted. Use with --timeout 5m for a large video"},
     "dry_run": {"required": false, "description": "true = check the text and return what would be sent, without posting (default false)"}
   },
   "capabilities": ["network"],
   "readOnly": false,
-  "example": "chrome-use site twitter/post --text @tweet.txt --dry_run true"
+  "example": "chrome-use site twitter/post --text @tweet.txt --media ./clip.mp4 --timeout 5m"
 }
 */
 
@@ -50,8 +51,11 @@ async function(args) {
   };
   if (replyTo) variables.reply = {in_reply_to_tweet_id: replyTo, exclude_reply_user_ids: []};
 
+  const localFile = args.media && typeof args.media === 'object' && typeof args.media.setOn === 'function' ? args.media : null;
+  if (args.media && !localFile) return {error: 'media must be a local file path', hint: 'Pass --media ./clip.mp4 (needs chrome-use 1.5.149+)'};
+
   const dry = String(args.dry_run) === 'true';
-  if (dry) return {ok: true, dry_run: true, weighted_length: weighted, variables};
+  if (dry) return {ok: true, dry_run: true, weighted_length: weighted, variables, media: localFile ? {name: localFile.name, size: localFile.size} : null};
 
   const ct0 = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('ct0='))?.split('=')[1];
   if (!ct0) return {error: 'Not signed in to x.com', hint: 'Log in at https://x.com in this browser, then retry.'};
@@ -93,19 +97,78 @@ async function(args) {
   };
 
   const bearer = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA';
+  const auth = {
+    'Authorization': 'Bearer ' + decodeURIComponent(bearer),
+    'X-Csrf-Token': ct0,
+    'X-Twitter-Auth-Type': 'OAuth2Session',
+    'X-Twitter-Active-User': 'yes',
+  };
+
+  if (localFile) {
+    // chrome-use puts the local file on a file input in this page; read it back
+    // from there and upload it the way the web composer does.
+    let input = document.getElementById('cu-twitter-post-media');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'file';
+      input.id = 'cu-twitter-post-media';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+    }
+    try {
+      await localFile.setOn('#cu-twitter-post-media');
+    } catch (e) {
+      return {error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e)};
+    }
+    const file = input.files && input.files[0];
+    if (!file) return {error: 'The file did not reach the page', hint: 'Retry; nothing was posted.'};
+    const isVideo = /^video\//.test(file.type) || /\.(mp4|mov|m4v)$/i.test(file.name);
+    const mediaType = file.type || (isVideo ? 'video/mp4' : 'image/jpeg');
+    const category = isVideo ? 'tweet_video' : (/gif$/i.test(mediaType) ? 'tweet_gif' : 'tweet_image');
+    const UPLOAD = 'https://upload.x.com/i/media/upload.json';
+    const call = async (query, init) => {
+      const r = await fetch(UPLOAD + '?' + new URLSearchParams(query), Object.assign({credentials: 'include', headers: auth}, init || {}));
+      let j = null;
+      try { j = await r.json(); } catch (e) { j = null; }
+      return {ok: r.ok, status: r.status, json: j};
+    };
+    const fail = (step, r) => ({
+      error: 'Media upload failed at ' + step + ': HTTP ' + r.status + ((r.json && r.json.error) ? ' ' + r.json.error : ''),
+      hint: 'Nothing was posted.',
+    });
+    const init = await call({command: 'INIT', total_bytes: String(file.size), media_type: mediaType, media_category: category}, {method: 'POST'});
+    const mediaId = init.json && init.json.media_id_string;
+    if (!init.ok || !mediaId) return fail('INIT', init);
+    const CHUNK = 4 * 1024 * 1024;
+    for (let i = 0, off = 0; off < file.size; i++, off += CHUNK) {
+      const form = new FormData();
+      form.append('media', file.slice(off, off + CHUNK));
+      const app = await call({command: 'APPEND', media_id: mediaId, segment_index: String(i)}, {method: 'POST', body: form});
+      if (!app.ok) return fail('APPEND ' + i, app);
+    }
+    const fin = await call({command: 'FINALIZE', media_id: mediaId}, {method: 'POST'});
+    if (!fin.ok) return fail('FINALIZE', fin);
+    let info = fin.json && fin.json.processing_info;
+    const deadline = Date.now() + 240000;
+    while (info && info.state !== 'succeeded') {
+      if (info.state === 'failed') {
+        return {error: 'X could not process the media: ' + ((info.error && info.error.message) || 'failed'), hint: 'Nothing was posted.'};
+      }
+      if (Date.now() > deadline) return {error: 'X is still processing the media', hint: 'Nothing was posted; run again later.', media_id: mediaId};
+      await new Promise(res => setTimeout(res, Math.max(1, info.check_after_secs || 2) * 1000));
+      const st = await call({command: 'STATUS', media_id: mediaId}, {method: 'GET'});
+      if (!st.ok) return fail('STATUS', st);
+      info = st.json && st.json.processing_info;
+    }
+    variables.media.media_entities = [{media_id: mediaId, tagged_users: []}];
+  }
+
   const path = '/i/api/graphql/' + queryId + '/CreateTweet';
   const txId = await genTxId('x.com', path, 'POST');
   const resp = await fetch(path, {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      'Authorization': 'Bearer ' + decodeURIComponent(bearer),
-      'Content-Type': 'application/json',
-      'X-Csrf-Token': ct0,
-      'X-Twitter-Auth-Type': 'OAuth2Session',
-      'X-Twitter-Active-User': 'yes',
-      'X-Client-Transaction-Id': txId,
-    },
+    headers: Object.assign({}, auth, {'Content-Type': 'application/json', 'X-Client-Transaction-Id': txId}),
     body: JSON.stringify({variables, features, queryId}),
   });
   let body = null;
@@ -123,5 +186,6 @@ async function(args) {
   if (!id) return {error: 'X answered without a tweet id', hint: 'Check your profile before posting again: it may or may not have gone out.', outcome: 'unknown'};
   const user = result.core && result.core.user_results && result.core.user_results.result;
   const screen = (user && ((user.legacy && user.legacy.screen_name) || (user.core && user.core.screen_name))) || 'i';
-  return {ok: true, id, url: 'https://x.com/' + screen + '/status/' + id, weighted_length: weighted, in_reply_to: replyTo || null};
+  const media = variables.media.media_entities.map(m => m.media_id);
+  return {ok: true, id, url: 'https://x.com/' + screen + '/status/' + id, weighted_length: weighted, in_reply_to: replyTo || null, media};
 }

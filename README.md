@@ -51,7 +51,12 @@ is built.
 chrome-use site twitter/post --text @tweet.txt --dry_run true
 chrome-use site twitter/post --text @tweet.txt
 chrome-use site twitter/post --text @second.txt --reply_to https://x.com/you/status/123
+chrome-use site twitter/post --text @tweet.txt --media ./clip.mp4 --timeout 5m   # native video
 ```
+
+`--media` attaches a local video or image: it is uploaded the way the web
+composer does (chunked INIT/APPEND/FINALIZE, then waiting for X to process a
+video) before the tweet goes out, and a failed upload posts nothing.
 
 ### `sggit/` — self-hosted Gogs (`sg-git.pwtk.cc`)
 
