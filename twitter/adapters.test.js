@@ -218,3 +218,71 @@ test('post needs a session', async () => {
   const r = await adapter({ text: 'hello' })
   assert.match(r.error, /Not signed in/)
 })
+
+function mediaDoc() {
+  const nodes = {}
+  return {
+    cookie: 'ct0=test-token',
+    getElementById: (id) => nodes[id] || null,
+    createElement: () => ({ style: {}, files: null }),
+    body: { appendChild: (el) => { nodes[el.id] = el } },
+    nodes,
+  }
+}
+
+function localVideo(doc, bytes) {
+  const blob = new Blob([new Uint8Array(bytes)], { type: 'video/mp4' })
+  const file = Object.assign(blob, { name: 'clip.mp4' })
+  return {
+    name: 'clip.mp4',
+    size: bytes,
+    setOn: async (sel) => { doc.nodes[sel.slice(1)].files = [file] },
+  }
+}
+
+test('post uploads a video in chunks, waits for processing, then tweets it', async () => {
+  const doc = mediaDoc()
+  const calls = []
+  let statusPolls = 0
+  const adapter = loadAdapter('./post.js', {
+    document: doc,
+    fetch: async (url, init) => {
+      const u = new URL(url, 'https://x.com')
+      const cmd = u.searchParams.get('command')
+      calls.push(cmd || u.pathname)
+      if (cmd === 'INIT') return { ok: true, json: async () => ({ media_id_string: 'M1' }) }
+      if (cmd === 'APPEND') return { ok: true, json: async () => { throw new Error('empty') } }
+      if (cmd === 'FINALIZE') return { ok: true, json: async () => ({ processing_info: { state: 'pending', check_after_secs: 0.001 } }) }
+      if (cmd === 'STATUS') {
+        statusPolls++
+        return { ok: true, json: async () => ({ processing_info: { state: 'succeeded' } }) }
+      }
+      const body = JSON.parse(init.body)
+      assert.deepEqual(body.variables.media.media_entities, [{ media_id: 'M1', tagged_users: [] }])
+      return { ok: true, json: async () => ({ data: { create_tweet: { tweet_results: { result: { rest_id: '9' } } } } }) }
+    },
+  })
+  const r = await adapter({ text: 'video', media: localVideo(doc, 9 * 1024 * 1024) })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.deepEqual(r.media, ['M1'])
+  assert.deepEqual(calls.slice(0, 5), ['INIT', 'APPEND', 'APPEND', 'APPEND', 'FINALIZE'])
+  assert.equal(statusPolls, 1)
+})
+
+test('post stops before tweeting when the media upload fails', async () => {
+  const doc = mediaDoc()
+  let tweeted = false
+  const adapter = loadAdapter('./post.js', {
+    document: doc,
+    fetch: async (url) => {
+      const cmd = new URL(url, 'https://x.com').searchParams.get('command')
+      if (cmd === 'INIT') return { ok: false, status: 403, json: async () => ({ error: 'forbidden' }) }
+      tweeted = true
+      return { ok: true, json: async () => ({}) }
+    },
+  })
+  const r = await adapter({ text: 'video', media: localVideo(doc, 1024) })
+  assert.match(r.error, /INIT: HTTP 403/)
+  assert.match(r.hint, /Nothing was posted/)
+  assert.equal(tweeted, false)
+})
