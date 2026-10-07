@@ -482,3 +482,139 @@ test('open-project refuses to touch a throttled page', async () => {
   assert.deepEqual(seen, [])
   assert.deepEqual(page.clicked, [])
 })
+
+// chatgpt/images: an image run that gave up early leaves its picture in the
+// conversation. This payload mirrors what the server holds for one: the user's
+// prompt (with an attached reference), the image tool's output, and a
+// regenerated sibling on a dead branch.
+const IMG_CID = '6aa20b3f-c6fc-83e8-9007-e1e3d3a8eb3d'
+const imgPart = (pointer, extra = {}) => ({
+  content_type: 'image_asset_pointer', asset_pointer: pointer, width: 1024, height: 1024,
+  size_bytes: 2048, ...extra,
+})
+const IMG_CONVO = {
+  conversation_id: IMG_CID,
+  title: 'fox',
+  current_node: 'a2',
+  async_status: null,
+  mapping: {
+    root: { id: 'root', parent: null, children: ['u1'] },
+    u1: { id: 'u1', parent: 'root', children: ['t1', 'dead'],
+          message: { id: 'u1', author: { role: 'user' }, weight: 1, create_time: 1,
+                     content: { content_type: 'multimodal_text',
+                                parts: [imgPart('sediment://file_ref'), 'draw a fox'] } } },
+    t1: { id: 't1', parent: 'u1', children: ['a2'],
+          message: { id: 't1', author: { role: 'tool', name: 't2uay3k.sj1i4kz' }, weight: 1, create_time: 2,
+                     status: 'finished_successfully',
+                     content: { content_type: 'multimodal_text',
+                                parts: [imgPart('sediment://file_fox', { metadata: { generation: { gen_id: 'g-1' } } })] } } },
+    a2: { id: 'a2', parent: 't1', children: [],
+          message: { id: 'a2', author: { role: 'assistant' }, weight: 1, end_turn: true, create_time: 3,
+                     status: 'finished_successfully',
+                     content: { content_type: 'text', parts: [''] } } },
+    dead: { id: 'dead', parent: 'u1', children: [],
+            message: { id: 'dead', author: { role: 'tool' }, weight: 1,
+                       content: { content_type: 'multimodal_text', parts: [imgPart('sediment://file_old')] } } },
+  },
+}
+
+/** Mint a download URL for any file id, recording which endpoint was asked. */
+const imagesAdapter = (convo = IMG_CONVO, extra = {}, seen = []) => loadAdapter('./images.js', {
+  fetch: router({
+    '/api/auth/session': okJson(SESSION),
+    '/backend-api/conversation/': okJson(convo),
+    '/backend-api/files/download/': (url) => okJson({
+      status: 'success',
+      download_url: 'https://chatgpt.com/backend-api/estuary/content?id=' + url.split('/').pop().split('?')[0] + '&sig=x',
+    }),
+    ...extra,
+  }, seen),
+})
+
+test('images lists the generated image on the live branch with a download url', async () => {
+  const seen = []
+  const r = await imagesAdapter(IMG_CONVO, {}, seen)({ id: 'https://chatgpt.com/c/' + IMG_CID })
+  assert.equal(r.count, 1)
+  const [img] = r.images
+  assert.equal(img.file_id, 'file_fox')
+  assert.equal(img.source, 'generated')
+  assert.equal(img.gen_id, 'g-1')
+  assert.match(img.download_url, /estuary\/content\?id=file_fox/)
+  assert.equal(r.finished, true)
+  // The regenerated sibling is not the image the user sees, and the attached
+  // reference is not ChatGPT's output.
+  assert.ok(!seen.some((u) => u.includes('file_old')))
+  assert.ok(!seen.some((u) => u.includes('file_ref')))
+  assert.ok(seen.includes('/backend-api/files/download/file_fox?conversation_id=' + IMG_CID + '&inline=false'))
+})
+
+test('images includes attached references only when asked', async () => {
+  const r = await imagesAdapter()({ id: IMG_CID, uploads: 'true' })
+  assert.deepEqual(r.images.map((i) => [i.file_id, i.source]),
+    [['file_ref', 'uploaded'], ['file_fox', 'generated']])
+})
+
+test('images --last keeps only the latest turn', async () => {
+  const two = JSON.parse(JSON.stringify(IMG_CONVO))
+  two.mapping.a2.children = ['u2']
+  two.mapping.u2 = { id: 'u2', parent: 'a2', children: ['t2'],
+    message: { id: 'u2', author: { role: 'user' }, weight: 1, content: { content_type: 'text', parts: ['again'] } } }
+  two.mapping.t2 = { id: 't2', parent: 'u2', children: [],
+    message: { id: 't2', author: { role: 'tool' }, weight: 1, status: 'finished_successfully',
+               content: { content_type: 'multimodal_text', parts: [imgPart('sediment://file_two')] } } }
+  two.current_node = 't2'
+  const all = await imagesAdapter(two)({ id: IMG_CID })
+  assert.deepEqual(all.images.map((i) => i.file_id), ['file_fox', 'file_two'])
+  const last = await imagesAdapter(two)({ id: IMG_CID, last: true })
+  assert.deepEqual(last.images.map((i) => i.file_id), ['file_two'])
+})
+
+test('images falls back to the legacy download endpoint for file-service ids', async () => {
+  const old = JSON.parse(JSON.stringify(IMG_CONVO))
+  old.mapping.t1.message.content.parts = [imgPart('file-service://file-abc')]
+  const r = await imagesAdapter(old, {
+    '/backend-api/files/download/': { ok: false, status: 404 },
+    '/backend-api/files/file-abc/download': okJson({ status: 'success', download_url: 'https://files.oaiusercontent.com/file-abc' }),
+  })({ id: IMG_CID })
+  assert.equal(r.images[0].file_id, 'file-abc')
+  assert.equal(r.images[0].download_url, 'https://files.oaiusercontent.com/file-abc')
+})
+
+test('images keeps an image whose url could not be minted, with the reason', async () => {
+  const r = await imagesAdapter(IMG_CONVO, {
+    '/backend-api/files/download/': okJson({ status: 'error', error_code: 'file_not_found' }),
+    '/backend-api/files/': { ok: false, status: 404 },
+  })({ id: IMG_CID })
+  assert.equal(r.count, 1)
+  assert.equal(r.images[0].download_url, null)
+  assert.equal(r.images[0].download_error, 'file_not_found')
+})
+
+test('images reports an unfinished conversation so an empty list is not read as "no image"', async () => {
+  const running = JSON.parse(JSON.stringify(IMG_CONVO))
+  running.async_status = 1
+  running.current_node = 'u1'
+  const r = await imagesAdapter(running)({ id: IMG_CID })
+  assert.equal(r.count, 0)
+  assert.equal(r.finished, false)
+  assert.equal(r.async_status, 1)
+})
+
+test('images stops on a 429 instead of hammering the download endpoint', async () => {
+  const seen = []
+  const two = JSON.parse(JSON.stringify(IMG_CONVO))
+  two.mapping.t1.message.content.parts.push(imgPart('sediment://file_b'))
+  const r = await imagesAdapter(two, { '/backend-api/files/download/': { ok: false, status: 429 } }, seen)({ id: IMG_CID })
+  assert.equal(r.status, 429)
+  assert.match(r.hint, /do not poll/i)
+  assert.equal(seen.filter((u) => u.includes('/files/')).length, 1)
+})
+
+test('images reports a deleted conversation as 404 with a hint', async () => {
+  const r = loadAdapter('./images.js', {
+    fetch: router({ '/api/auth/session': okJson(SESSION), '/backend-api/conversation/': { ok: false, status: 404 } }),
+  })
+  const out = await r({ id: IMG_CID })
+  assert.equal(out.status, 404)
+  assert.match(out.hint, /deleted/)
+})

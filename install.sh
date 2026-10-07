@@ -18,7 +18,7 @@ DEST_ROOT="${CHROME_USE_HOME:-$HOME/.chrome-use}/sites"
 # packName:file file ...
 PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js twitter/thread.js twitter/post.js
 chatgpt/_helper.js chatgpt/me.js chatgpt/conversations.js chatgpt/projects.js
-chatgpt/models.js chatgpt/conversation.js chatgpt/open-project.js
+chatgpt/models.js chatgpt/conversation.js chatgpt/open-project.js chatgpt/images.js
 xiaohongshu-creator/_helper.js xiaohongshu-creator/me.js xiaohongshu-creator/notes.js
 xiaohongshu-creator/note-stats.js
 juejin/article-publish.js csdn/article-publish.js segmentfault/article-publish.js

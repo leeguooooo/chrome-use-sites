@@ -103,6 +103,7 @@ chrome-use site chatgpt/conversations --project g-p-68bf…     # one project on
 chrome-use site chatgpt/projects
 chrome-use site chatgpt/projects --name "Blog illustrations"   # exact match
 chrome-use site chatgpt/open-project --name "Blog illustrations"   # enter it (not read-only)
+chrome-use site chatgpt/images https://chatgpt.com/c/6aa20b3f-…   # generated images + download URLs
 ```
 
 | adapter | args | notes |
@@ -111,6 +112,7 @@ chrome-use site chatgpt/open-project --name "Blog illustrations"   # enter it (n
 | `chatgpt/conversations` | `[limit] [offset] [project]` | `GET /backend-api/conversations?order=updated`. `limit` clamps to 1–100 (default 20). `--project` filters on `gizmo_id` client-side — the endpoint has no project filter. Returns `snippet` (the sidebar preview line), `starred`, `archived`. |
 | `chatgpt/projects` | `[name]` | Projects are "snorlax" gizmos; `GET /backend-api/gizmos/snorlax/sidebar?conversations_per_gizmo=0` is the only listing. `--name` is exact and case-sensitive; a miss tells you how many projects exist. |
 | `chatgpt/open-project` | `--name <project> \| --id <g-p-…> [--create true]` | **Not read-only**: navigates this tab into any Project so the next chat is filed under it from the start. Clicks the sidebar link in place when present (one backend request instead of ~45 for a reload), and only the link to the project **page**, never a conversation inside it. Resolves the name exactly like `chatgpt/projects`; creates the project only with `--create true`. Refuses while the "Too many requests" dialog is up. |
+| `chatgpt/images` | `<id\|url> [--last true] [--uploads true]` | Images ChatGPT generated in one conversation (live branch only), each with a signed `download_url` from `/backend-api/files/download/<file_id>` (legacy `/files/<id>/download` for old `file-service://` ids). Collects a result that a script gave up on before it rendered, without prompting again. URLs expire: fetch them right away, from this tab. `finished: false` with no images means the server is still working, not that there is no image. `--uploads` adds the user's attached references. Live-checked 2026-10-07 through `image-use recover` (5 generated PNGs from a `sediment://` conversation); the legacy `file-service://` fallback is still unverified. |
 
 **Why this pack is fetch-only, and must stay that way**
 
