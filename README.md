@@ -554,3 +554,7 @@ async function (args) {
 ```
 
 Avoid arg names that collide with chrome-use global flags (`state`, `profile`, `session`, `timeout`, `url`, `fn`, …).
+
+## License
+
+MIT, see [LICENSE](LICENSE). Contributions are accepted under the same license.
