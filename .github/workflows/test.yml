@@ -1,0 +1,18 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  node-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Runs every pack's stubbed tests plus docs.test.js, which enforces the
+      # repo rules in CONTRIBUTING.md (bilingual READMEs, CHANGELOG, install.sh).
+      - run: node --test

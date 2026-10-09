@@ -1,5 +1,9 @@
 # Agent rules for chrome-use-sites
 
+## Docs and changelog are required
+
+Every change follows [CONTRIBUTING.md](CONTRIBUTING.md): each pack keeps a `README.md` and a `README.zh.md` covering every adapter it has, and each change gets a dated entry in `CHANGELOG.md`. `docs.test.js` fails the build otherwise, and CI runs `node --test` on every PR.
+
 ## Never test the chatgpt/ adapters against the live ChatGPT
 
 Do **not** run `chrome-use site chatgpt/*`, or open chatgpt.com in scratch sessions, to check an adapter. They run in the user's own signed-in browser, and chatgpt.com throttles that account by **request count**. A full page load is about 45 backend requests, and scripted live checks have already tripped "Too many requests" on the account the user works in.
