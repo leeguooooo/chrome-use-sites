@@ -1,0 +1,127 @@
+{
+ "status_code": 0,
+ "has_more": true,
+ "max_cursor": 1726472500000,
+ "min_cursor": 0,
+ "total": 202,
+ "aweme_list": [
+  {
+   "aweme_id": "7000000000000000001",
+   "desc": "(private work, text removed)",
+   "item_title": "",
+   "create_time": 1760082380,
+   "duration": 0,
+   "aweme_type": 2,
+   "statistics": {
+    "aweme_id": "7000000000000000001",
+    "collect_count": 0,
+    "comment_count": 0,
+    "digg_count": 4,
+    "forward_count": 0,
+    "live_watch_count": 0,
+    "play_count": 0,
+    "share_count": 1
+   },
+   "status": {
+    "allow_comment": true,
+    "allow_share": true,
+    "aweme_id": "7000000000000000001",
+    "in_reviewing": false,
+    "is_delete": false,
+    "is_private": true,
+    "is_prohibited": false,
+    "private_status": 1,
+    "reviewed": false,
+    "self_see": false,
+    "with_fusion_goods": false,
+    "with_goods": false
+   },
+   "video": {
+    "cover": {
+     "url_list": [
+      "https://example.invalid/cover.jpg"
+     ]
+    }
+   }
+  },
+  {
+   "aweme_id": "7537960557090868499",
+   "desc": "#互关",
+   "item_title": "",
+   "create_time": 1755068213,
+   "duration": 8234,
+   "aweme_type": 4,
+   "statistics": {
+    "aweme_id": "7537960557090868499",
+    "collect_count": 0,
+    "comment_count": 11,
+    "digg_count": 10,
+    "forward_count": 0,
+    "live_watch_count": 0,
+    "play_count": 1079,
+    "share_count": 4
+   },
+   "status": {
+    "allow_comment": true,
+    "allow_share": true,
+    "aweme_id": "7537960557090868499",
+    "in_reviewing": false,
+    "is_delete": false,
+    "is_private": false,
+    "is_prohibited": false,
+    "private_status": 0,
+    "reviewed": false,
+    "self_see": false,
+    "with_fusion_goods": false,
+    "with_goods": false
+   },
+   "video": {
+    "cover": {
+     "url_list": [
+      "https://example.invalid/cover.jpg"
+     ]
+    }
+   }
+  },
+  {
+   "aweme_id": "7000000000000000003",
+   "desc": "(private work, text removed)",
+   "item_title": "",
+   "create_time": 1753688100,
+   "duration": 6547,
+   "aweme_type": 4,
+   "statistics": {
+    "aweme_id": "7000000000000000003",
+    "collect_count": 0,
+    "comment_count": 0,
+    "digg_count": 0,
+    "forward_count": 0,
+    "live_watch_count": 0,
+    "play_count": 0,
+    "share_count": 0
+   },
+   "status": {
+    "allow_comment": true,
+    "allow_share": true,
+    "aweme_id": "7000000000000000003",
+    "in_reviewing": false,
+    "is_delete": false,
+    "is_private": true,
+    "is_prohibited": false,
+    "private_status": 1,
+    "reviewed": false,
+    "self_see": true,
+    "with_fusion_goods": false,
+    "with_goods": false
+   },
+   "video": {
+    "cover": {
+     "url_list": [
+      "https://example.invalid/cover.jpg"
+     ]
+    }
+   }
+  }
+ ],
+ "_fixture": "captured 2026-10-09 from creator.douyin.com (own account, trimmed to the fields adapters read); private works anonymised, share/cover URLs removed"
+}

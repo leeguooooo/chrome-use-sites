@@ -1,0 +1,23 @@
+{
+ "status_code": 0,
+ "user": {
+  "uid": "92485545003",
+  "short_id": "335992539",
+  "unique_id": "leeguoo",
+  "sec_uid": "MS4wLjABAAAAIBWcidiMbMRjqEZfbG7y7FbL0LtASeDpYHXfRqQJtfU",
+  "nickname": "大果粒科技",
+  "signature": "",
+  "aweme_count": 188,
+  "follower_count": 1330,
+  "following_count": 945,
+  "total_favorited": "2720",
+  "favoriting_count": 6687,
+  "avatar_thumb": {
+   "url_list": [
+    "https://example.invalid/avatar.jpg"
+   ]
+  },
+  "region": "CN"
+ },
+ "_fixture": "captured 2026-10-09 from creator.douyin.com (own account, trimmed to the fields adapters read)"
+}

@@ -1,0 +1,127 @@
+{
+ "status_code": 0,
+ "has_more": true,
+ "max_cursor": 1767000348000,
+ "min_cursor": 0,
+ "total": 202,
+ "aweme_list": [
+  {
+   "aweme_id": "7693429129374338319",
+   "desc": "让 AI 用你的真 iPhone｜开源 iphone-use 让 AI agent 操作一台真 iPhone：屏幕读成文字，点、滑、输入，没生效会直接说。银行、支付这类禁止截屏的 App 也能看。 \n· 点一下并等画面稳定：8.5 秒 → 4.2 秒；冷启动 75 秒 → 13 秒\n· 屏幕读成文字、只返回变化、最多 24 步一次发出，省 token\n· 做过一次的任务录成 flow，一条命令重放，不经过模型\n· 浏览器或 iPhone App 远程控制 \n开源（MIT）：https://github.com/leeguooooo/iphone-use\n安装：curl -fsSL https://raw.githubusercontent.com/leeguooooo/iphone-use/main/install.sh | sh \n旁白为 AI 合成语音。 #AI #iPhone #开源 #AI编程",
+   "item_title": "让 AI 用你的真 iPhone｜开源",
+   "create_time": 1791266063,
+   "duration": 112811,
+   "aweme_type": 4,
+   "statistics": {
+    "aweme_id": "7693429129374338319",
+    "collect_count": 2,
+    "comment_count": 4,
+    "digg_count": 10,
+    "forward_count": 0,
+    "live_watch_count": 0,
+    "play_count": 566,
+    "share_count": 2
+   },
+   "status": {
+    "allow_comment": true,
+    "allow_share": true,
+    "aweme_id": "7693429129374338319",
+    "in_reviewing": false,
+    "is_delete": false,
+    "is_private": false,
+    "is_prohibited": false,
+    "private_status": 0,
+    "reviewed": false,
+    "self_see": false,
+    "with_fusion_goods": false,
+    "with_goods": false
+   },
+   "video": {
+    "cover": {
+     "url_list": [
+      "https://example.invalid/cover.jpg"
+     ]
+    }
+   }
+  },
+  {
+   "aweme_id": "7691209704869023002",
+   "desc": "Pastyx：Mac 上复制过的东西一键找回 刚复制的代码被新的复制覆盖了？Pastyx 记下你复制过的一切，⌘⇧V 一键找回、回车粘贴。原生 macOS 剪贴板工具，本地优先，买断制，可免费试用 7 天。官网 paste.leeguoo.com #效率工具 #Mac #程序员 #剪贴板",
+   "item_title": "Pastyx：Mac 上复制过的东西一键找回",
+   "create_time": 1790749309,
+   "duration": 36054,
+   "aweme_type": 4,
+   "statistics": {
+    "aweme_id": "7691209704869023002",
+    "collect_count": 3,
+    "comment_count": 2,
+    "digg_count": 5,
+    "forward_count": 0,
+    "live_watch_count": 0,
+    "play_count": 332,
+    "share_count": 0
+   },
+   "status": {
+    "allow_comment": true,
+    "allow_share": true,
+    "aweme_id": "7691209704869023002",
+    "in_reviewing": false,
+    "is_delete": false,
+    "is_private": false,
+    "is_prohibited": false,
+    "private_status": 0,
+    "reviewed": false,
+    "self_see": false,
+    "with_fusion_goods": false,
+    "with_goods": false
+   },
+   "video": {
+    "cover": {
+     "url_list": [
+      "https://example.invalid/cover.jpg"
+     ]
+    }
+   }
+  },
+  {
+   "aweme_id": "7691167534518668544",
+   "desc": "让 Claude Code 和 Codex 互相叫醒 同一台电脑上开着 Claude Code 和 Codex，它们却互相看不见。ocs 让 AI agent 互发消息、互相叫醒，局域网里跨电脑也行。开源免费，GitHub 搜 open-cross-session #AI编程  #ClaudeCode  #程序员  #开源项目",
+   "item_title": "让 Claude Code 和 Codex 互相叫醒",
+   "create_time": 1790739492,
+   "duration": 36822,
+   "aweme_type": 4,
+   "statistics": {
+    "aweme_id": "7691167534518668544",
+    "collect_count": 0,
+    "comment_count": 0,
+    "digg_count": 2,
+    "forward_count": 0,
+    "live_watch_count": 0,
+    "play_count": 53,
+    "share_count": 0
+   },
+   "status": {
+    "allow_comment": true,
+    "allow_share": true,
+    "aweme_id": "7691167534518668544",
+    "in_reviewing": false,
+    "is_delete": false,
+    "is_private": false,
+    "is_prohibited": false,
+    "private_status": 0,
+    "reviewed": false,
+    "self_see": false,
+    "with_fusion_goods": false,
+    "with_goods": false
+   },
+   "video": {
+    "cover": {
+     "url_list": [
+      "https://example.invalid/cover.jpg"
+     ]
+    }
+   }
+  }
+ ],
+ "_fixture": "captured 2026-10-09 from creator.douyin.com (own account, trimmed to the fields adapters read); private works anonymised, share/cover URLs removed"
+}

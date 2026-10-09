@@ -38,7 +38,17 @@ When X omits or restricts a metric, its value is `null`.
 ```sh
 chrome-use site twitter/search "chrome-use" --count 20
 chrome-use site twitter/thread 2048506314163458106
+chrome-use site twitter/user                 # the signed-in account
+chrome-use site twitter/user leeguooooo
 ```
+
+`twitter/user` returns `followers`, `following`, `tweets`, `media`, `likes`,
+`bio`, `location`, `website` (the t.co link when X's 2026 shape gives no expanded URL), `created_at` and `pinned_tweet_ids`. Without a
+handle it reads the signed-in one from the side nav. It reads both shapes of
+`UserByScreenName`: the 2026 one, where the counts moved out of `legacy` into
+`relationship_counts` / `tweet_counts` / `action_counts`, and the older one.
+It overrides the community `twitter/user`, which returned no counts once X
+moved them.
 
 `twitter/post` posts from the logged-in account through X's own `CreateTweet`
 call (with the same transaction-id header the web app sends). The text is
@@ -171,7 +181,7 @@ that are hard to attribute.
 
 Reads `creator.xiaohongshu.com` (创作服务平台) as the account signed in there:
 profile counts, the note manager list, and the per-note data center. The
-community pack's `xiaohongshu/` covers the public site (`www.xiaohongshu.com`);
+community pack's `xiaohongshu/` covers the public site (`www.xiaohongshu.com`), and the official `xiaohongshu/me` below reads your profile counts there without this login;
 this pack covers only what the creator sees about their own account.
 
 ```sh
@@ -245,6 +255,23 @@ center by hand.
 - The manager's `time` is China-local `YYYY-MM-DD HH:mm` with no zone.
   `published_at` adds `+08:00`. `note-stats` uses the epoch `postTime`, so it
   has seconds too.
+
+### `xiaohongshu/me` — your Xiaohongshu profile counts without the creator center
+
+`creator.xiaohongshu.com` needs its own login (a second QR code). `xiaohongshu/me`
+works on `www.xiaohongshu.com` alone: the signed-in user from the page's Pinia
+store, then one GET of your profile page for the counts it renders.
+
+```sh
+chrome-use site xiaohongshu/me
+chrome-use site xiaohongshu/me --notes 10     # plus the newest notes (max 30)
+```
+
+Returns `userid`, `nickname`, `red_id`, `desc`, `gender`, `ip_location` (IP 属地),
+`follows`, `fans`, `likes_and_collects` (获赞与收藏), `url`; with `--notes`, each
+note's `note_id`, `title`, `type`, `likes`, `sticky` and `url`. One request, no
+paging (Xiaohongshu bans accounts for scripted traffic). It overrides the
+community `xiaohongshu/me`, which has no counts; its old fields keep their names.
 
 ### `*/article-publish` — cross-post a Markdown article to Chinese dev platforms
 
@@ -359,6 +386,20 @@ private`, then discard the draft with 放弃. The adapter's tests run against th
 post page captured in `douyin-creator/fixtures/` (`node --test`); the one live
 check was a private draft of a 3 s test clip, discarded afterwards.
 
+### `douyin-creator/me` and `douyin-creator/works` — your own Douyin account, read-only
+
+```sh
+chrome-use site douyin-creator/me
+chrome-use site douyin-creator/works --limit 50
+chrome-use site douyin-creator/works --limit 500 --visibility public
+chrome-use site douyin-creator/works --cursor 1661351824000      # resume after an error
+```
+
+| adapter | args | notes |
+| --- | --- | --- |
+| `douyin-creator/me` | — | `uid`, `nickname`, `douyin_id` (抖音号), `sec_uid`, `signature`, `followers`, `following`, `works` (private works included), `total_likes`, `profile_url`. `GET /web/api/media/user/info/`. |
+| `douyin-creator/works` | `[limit] [visibility] [cursor]` | The creator center's `GET /janus/douyin/creator/pc/work_list`, newest first. Each work: `aweme_id`, `title`, `desc`, `created_at`, `duration_sec`, `visibility` (`public`/`private`), `in_review`, `plays`, `likes`, `comments`, `shares`, `collects`, `url`. The server sends about six works per page whatever the page size, so a 200-work account is ~35 requests (~30 s). A dropped request is retried once; if it fails again you get the works so far, `error`, and `next_cursor` to resume. Private works report 0 plays. |
+
 ### `youtube-studio/video-upload` — upload and publish a video in YouTube Studio
 
 One command with chrome-use 1.5.149 or newer: `--video` takes the local file,
@@ -439,6 +480,21 @@ How it works:
 **Risk.** This publishes to your real channel. Upload with `--visibility private`,
 check the video, then switch it on the edit page. Tests run against the dialog
 captured in `youtube-studio/fixtures/` (`node --test`).
+
+### `youtube-studio/channel` — your own channel and uploads, read-only
+
+```sh
+chrome-use site youtube-studio/channel             # totals + 30 newest uploads
+chrome-use site youtube-studio/channel --limit 0   # totals only
+```
+
+Calls Studio's own `creator/get_creator_channels` and
+`creator/list_creator_videos` with the SAPISIDHASH Studio sends. Returns
+`subscribers`, `videos`, `total_views`, and `uploads`: `video_id`, `title`,
+`type` (`video`/`short`), `visibility` (`public`/`unlisted`/`private`/`draft`),
+`published_at`, `duration_sec`, `views`, `likes`, `comments`, `url`. Unlike
+Studio's Videos tab, the list includes Shorts. Pages with `nextPageToken`;
+`--limit` max 500.
 
 ### `bilibili-creator/video-publish` — publish a video on Bilibili (投稿)
 

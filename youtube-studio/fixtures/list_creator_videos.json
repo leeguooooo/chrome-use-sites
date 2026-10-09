@@ -1,0 +1,105 @@
+{
+ "_fixture": "list_creator_videos captured 2026-10-09 from studio.youtube.com (own channel; trimmed to the masked fields; the Short added from a second capture)",
+ "videos": [
+  {
+   "videoId": "k5MsBZcjUVs",
+   "title": "iphone-use: let AI use your real iPhone (open source)",
+   "privacy": "VIDEO_PRIVACY_PUBLIC",
+   "contentType": "CREATOR_CONTENT_TYPE_VIDEO_ON_DEMAND",
+   "lengthSeconds": "111",
+   "timePublishedSeconds": "1791215064",
+   "timeCreatedSeconds": "1791214979",
+   "publicMetrics": {
+    "commentCount": "0",
+    "likeCount": "0",
+    "externalViewCount": "79"
+   },
+   "status": "VIDEO_STATUS_PROCESSED",
+   "draftStatus": "DRAFT_STATUS_NONE"
+  },
+  {
+   "videoId": "VnOQXy1INd0",
+   "title": "让 Claude Code 和 Codex 互相叫醒 #shorts",
+   "privacy": "VIDEO_PRIVACY_PUBLIC",
+   "contentType": "CREATOR_CONTENT_TYPE_SHORTS",
+   "lengthSeconds": "37",
+   "timePublishedSeconds": "1791221462",
+   "timeCreatedSeconds": "1791221400",
+   "publicMetrics": {
+    "commentCount": "0",
+    "likeCount": "4",
+    "externalViewCount": "167"
+   },
+   "status": "VIDEO_STATUS_PROCESSED",
+   "draftStatus": "DRAFT_STATUS_NONE"
+  },
+  {
+   "videoId": "Q-QWOrmBUEs",
+   "title": "ocs：让 Claude Code 和 Codex 互相叫醒、互发消息（还能跨电脑）",
+   "privacy": "VIDEO_PRIVACY_PUBLIC",
+   "contentType": "CREATOR_CONTENT_TYPE_VIDEO_ON_DEMAND",
+   "lengthSeconds": "37",
+   "timePublishedSeconds": "1790745581",
+   "timeCreatedSeconds": "1790743633",
+   "publicMetrics": {
+    "commentCount": "0",
+    "likeCount": "0",
+    "externalViewCount": "88"
+   },
+   "status": "VIDEO_STATUS_PROCESSED",
+   "draftStatus": "DRAFT_STATUS_NONE"
+  },
+  {
+   "videoId": "pyDMUffhUhs",
+   "title": "ocs: make Claude Code and Codex talk to each other (even across computers)",
+   "privacy": "VIDEO_PRIVACY_PUBLIC",
+   "contentType": "CREATOR_CONTENT_TYPE_VIDEO_ON_DEMAND",
+   "lengthSeconds": "36",
+   "timePublishedSeconds": "1790743496",
+   "timeCreatedSeconds": "1790743126",
+   "publicMetrics": {
+    "commentCount": "0",
+    "likeCount": "0",
+    "externalViewCount": "18"
+   },
+   "status": "VIDEO_STATUS_PROCESSED",
+   "draftStatus": "DRAFT_STATUS_NONE"
+  },
+  {
+   "videoId": "ajfv0ZxEjl0",
+   "title": "雨姐版《大东北》",
+   "privacy": "VIDEO_PRIVACY_PUBLIC",
+   "contentType": "CREATOR_CONTENT_TYPE_VIDEO_ON_DEMAND",
+   "lengthSeconds": "239",
+   "timePublishedSeconds": "1762577180",
+   "timeCreatedSeconds": "1762577092",
+   "publicMetrics": {
+    "commentCount": "0",
+    "likeCount": "2",
+    "externalViewCount": "361"
+   },
+   "status": "VIDEO_STATUS_PROCESSED",
+   "draftStatus": "DRAFT_STATUS_NONE"
+  },
+  {
+   "videoId": "BDivEUov66s",
+   "title": "单反-设置高光警告",
+   "privacy": "VIDEO_PRIVACY_PUBLIC",
+   "contentType": "CREATOR_CONTENT_TYPE_VIDEO_ON_DEMAND",
+   "lengthSeconds": "43",
+   "timePublishedSeconds": "1536136446",
+   "timeCreatedSeconds": "1536136380",
+   "publicMetrics": {
+    "commentCount": "0",
+    "likeCount": "0",
+    "externalViewCount": "74"
+   },
+   "status": "VIDEO_STATUS_PROCESSED",
+   "draftStatus": "DRAFT_STATUS_NONE"
+  }
+ ],
+ "videosTotalSize": {
+  "size": "6",
+  "accuracy": "ACCURACY_EXACT"
+ }
+}
