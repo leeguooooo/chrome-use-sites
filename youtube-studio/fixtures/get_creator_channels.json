@@ -1,0 +1,14 @@
+{
+ "_fixture": "get_creator_channels captured 2026-10-09",
+ "channels": [
+  {
+   "channelId": "UClunnXMSPA-51fr1Ivn28xw",
+   "title": "郭立",
+   "metric": {
+    "subscriberCount": "1",
+    "videoCount": "6",
+    "totalVideoViewCount": "629"
+   }
+  }
+ ]
+}
