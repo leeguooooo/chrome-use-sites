@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/leeguooooo/chrome-use-sites/main/install.sh | sh
 #
 # Installs every adapter pack in this repo (currently: sggit, twitter, chatgpt,
-# xiaohongshu-creator, xiaohongshu (me), douyin-creator, youtube-studio, bilibili-creator, and article-publish for juejin, csdn,
+# xiaohongshu-creator, xiaohongshu (me), douyin-creator, douyin (delete/update), youtube-studio, bilibili-creator, and article-publish for juejin, csdn,
 # segmentfault and zhihu). Custom adapters
 # under ~/.chrome-use/sites/ survive `chrome-use site update` (it merges the
 # community pack, it does not wipe the dir), so these stay put.
@@ -16,7 +16,7 @@ BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 DEST_ROOT="${CHROME_USE_HOME:-$HOME/.chrome-use}/sites"
 
 # packName:file file ...
-PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js twitter/thread.js twitter/post.js twitter/user.js
+PACKS="sggit/pr-create.js sggit/pr-list.js sggit/pr-merge.js twitter/search.js twitter/thread.js twitter/post.js twitter/user.js twitter/delete.js
 chatgpt/_helper.js chatgpt/me.js chatgpt/conversations.js chatgpt/projects.js
 chatgpt/models.js chatgpt/conversation.js chatgpt/open-project.js chatgpt/images.js
 xiaohongshu-creator/_helper.js xiaohongshu-creator/me.js xiaohongshu-creator/notes.js
@@ -24,6 +24,7 @@ xiaohongshu-creator/note-stats.js xiaohongshu/me.js
 juejin/article-publish.js csdn/article-publish.js segmentfault/article-publish.js
 zhihu/article-publish.js
 douyin-creator/video-publish.js douyin-creator/me.js douyin-creator/works.js
+douyin/delete.js douyin/update.js
 youtube-studio/video-upload.js youtube-studio/channel.js
 bilibili-creator/video-publish.js
 si12333/pension-payments.js
@@ -54,7 +55,7 @@ done
 
 echo "✓ done"
 echo
-echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|xiaohongshu|douyin-creator|youtube-studio|bilibili-creator|juejin|csdn|segmentfault|zhihu|si12333|appstoreconnect)/'"
+echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|xiaohongshu|douyin-creator|douyin|youtube-studio|bilibili-creator|juejin|csdn|segmentfault|zhihu|si12333|appstoreconnect)/'"
 echo "Try:     chrome-use site twitter/search \"chrome-use\""
 echo
 echo "Note: adapters run in YOUR logged-in browser tab, so you must be"
