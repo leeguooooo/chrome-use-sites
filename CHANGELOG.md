@@ -5,6 +5,24 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-10-11
+
+### Added
+- `douyin/delete`, `douyin/update`: delete a work from 作品管理, or change a
+  scheduled work's publish time and its text. Ported from OpenCLI v1.8.8
+  (Apache-2.0, credited in each file and in `douyin/LICENSE-OpenCLI`) so
+  chrome-use stops running OpenCLI for them; chrome-use always runs these
+  files instead. They keep chrome-use's fixes to OpenCLI's `douyin/delete`
+  (chrome-use#508, #525): 64-bit ids stay exact strings (`item_id` arrives as a
+  bare JSON number past 2^53), and the work card is found by its title, with
+  scrolling, instead of by position. `douyin/delete` also pages `work_list`
+  to find older works. Run `douyin/delete` with `--until-done`: it opens 作品管理
+  first.
+- `twitter/delete`: delete one of the signed-in account's tweets through the
+  tweet's ⋯ menu. Ported from OpenCLI v1.8.8 (Apache-2.0,
+  `twitter/LICENSE-OpenCLI`); also takes a bare tweet id. Run with
+  `--until-done`: it opens the tweet first.
+
 ## 2026-10-09
 
 ### Added

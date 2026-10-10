@@ -13,6 +13,8 @@ chrome-use 内置两个 adapter 来源：
 
 两者都会在第一次使用时、以及 `chrome-use site update` 时自动同步。官方仓库最后同步，同名命令以官方为准。包含 [chrome-use#133](https://github.com/leeguooooo/chrome-use/pull/133) 的版本不需要 `site add`，也不需要单独的安装脚本。
 
+chrome-use 也能运行 [OpenCLI](https://github.com/jackwener/opencli)（`@jackwener/opencli`）的部分命令，但只限两个仓库都没有的命令名：这里的 adapter 永远优先于 OpenCLI 的同名命令。我们依赖的命令已移植到这里维护，不再从 OpenCLI 运行：`douyin/delete`、`douyin/update`、`twitter/delete`，按 OpenCLI 的 Apache-2.0 许可证注明出处（见各 pack 的 README）。
+
 ## 安装与更新
 
 ```sh
@@ -35,10 +37,11 @@ adapter 在你已登录的标签页里运行，所以**先登录目标网站**�
 
 | pack | 网站 | adapter | |
 | --- | --- | --- | --- |
-| [`twitter/`](twitter/) | x.com | `search`、`thread`、`user`、`post` | 读取 + 发帖 |
+| [`twitter/`](twitter/) | x.com | `search`、`thread`、`user`、`post`、`delete` | 读取 + 发帖 + 删帖 |
 | [`xiaohongshu/`](xiaohongshu/) | www.xiaohongshu.com | `me` | 读取 |
 | [`xiaohongshu-creator/`](xiaohongshu-creator/) | creator.xiaohongshu.com | `me`、`notes`、`note-stats` | 读取 |
 | [`douyin-creator/`](douyin-creator/) | creator.douyin.com | `me`、`works`、`video-publish` | 读取 + 发布 |
+| [`douyin/`](douyin/) | creator.douyin.com | `delete`、`update` | 删除 + 修改作品 |
 | [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish` | 发布 |
 | [`youtube-studio/`](youtube-studio/) | studio.youtube.com | `channel`、`video-upload` | 读取 + 发布 |
 | [`juejin/`](juejin/) · [`csdn/`](csdn/) · [`segmentfault/`](segmentfault/) · [`zhihu/`](zhihu/) | 国内技术社区 | `article-publish` | 发布 |
@@ -71,4 +74,4 @@ async function (args) {
 
 ## 许可证
 
-MIT，见 [LICENSE](LICENSE)。贡献内容同样按此许可证接受。
+MIT，见 [LICENSE](LICENSE)。贡献内容同样按此许可证接受。例外：从 OpenCLI 移植的文件（`douyin/delete.js`、`douyin/update.js`、`twitter/delete.js`）仍按 Apache License 2.0 授权，许可证全文放在旁边（`LICENSE-OpenCLI`），每个文件开头写明了修改内容。
