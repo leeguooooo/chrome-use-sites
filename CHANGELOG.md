@@ -5,6 +5,17 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-10-12
+
+### Fixed
+- `hackernews/top`, `hackernews/thread`: added here, replacing the community
+  pack's versions (epiral/bb-sites), which chrome-use now stops running. Those
+  fetch `hacker-news.firebaseio.com` from the `news.ycombinator.com` tab, but
+  HN's CSP (`default-src 'self'`, no `connect-src`) blocks that, so they always
+  failed with `TypeError: Failed to fetch`. These read HN's same-origin HTML
+  instead (`/news` and `/news?p=2` for `top`, `/item?id=` for `thread`) and
+  return the same fields and result envelope.
+
 ## 2026-10-11
 
 ### Added

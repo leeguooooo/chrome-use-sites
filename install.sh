@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/leeguooooo/chrome-use-sites/main/install.sh | sh
 #
 # Installs every adapter pack in this repo (currently: sggit, twitter, chatgpt,
-# xiaohongshu-creator, xiaohongshu (me), douyin-creator, douyin (delete/update), youtube-studio, bilibili-creator, bilibili (user-videos/creator-stats), and article-publish for juejin, csdn,
+# xiaohongshu-creator, xiaohongshu (me), douyin-creator, douyin (delete/update), youtube-studio, bilibili-creator, bilibili (user-videos/creator-stats), hackernews, and article-publish for juejin, csdn,
 # segmentfault and zhihu). Custom adapters
 # under ~/.chrome-use/sites/ survive `chrome-use site update` (it merges the
 # community pack, it does not wipe the dir), so these stay put.
@@ -30,6 +30,7 @@ youtube-studio/video-upload.js youtube-studio/channel.js
 bilibili-creator/video-publish.js
 bilibili/user-videos.js bilibili/creator-stats.js
 si12333/pension-payments.js
+hackernews/top.js hackernews/thread.js
 appstoreconnect/apps.js appstoreconnect/app-create.js appstoreconnect/builds.js"
 
 # Files a pack needs that live in another repo. The twitter adapters call
@@ -57,7 +58,7 @@ done
 
 echo "✓ done"
 echo
-echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|xiaohongshu|douyin-creator|douyin|youtube-studio|bilibili-creator|bilibili|juejin|csdn|segmentfault|zhihu|si12333|appstoreconnect)/'"
+echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|xiaohongshu|douyin-creator|douyin|youtube-studio|bilibili-creator|bilibili|juejin|csdn|segmentfault|zhihu|si12333|hackernews|appstoreconnect)/'"
 echo "Try:     chrome-use site twitter/search \"chrome-use\""
 echo
 echo "Note: adapters run in YOUR logged-in browser tab, so you must be"
