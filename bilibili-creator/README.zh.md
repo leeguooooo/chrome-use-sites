@@ -2,7 +2,7 @@
 
 [English](README.md) · 中文
 
-一个 adapter，对应 B 站创作中心 `member.bilibili.com`。`video-publish` 上传本地视频，填好投稿表单，然后点“立即投稿”发布，或点“存草稿”。它会真的发到你的账号上。chrome-use 驱动的浏览器里要先登录 member.bilibili.com。账号数据的读取（`bilibili/me`、`bilibili/user-videos`、`bilibili/creator-stats`）不在这个仓库，用的是社区 pack / OpenCLI 里的版本。
+一个 adapter，对应 B 站创作中心 `member.bilibili.com`。`video-publish` 上传本地视频，填好投稿表单，然后点“立即投稿”发布，或点“存草稿”。它会真的发到你的账号上。chrome-use 驱动的浏览器里要先登录 member.bilibili.com。账号数据的读取不在这个 pack：`bilibili/user-videos` 和 `bilibili/creator-stats` 在本仓库的 [`bilibili/`](../bilibili/) 里；`bilibili/me` 来自社区 pack。
 
 ## 命令
 

@@ -13,7 +13,7 @@ chrome-use has two built-in adapter sources:
 
 Both are fetched automatically on first use and by `chrome-use site update`. The official pack is synced last, so it wins a name both packs have. No `site add` or separate installer is required in versions containing [chrome-use#133](https://github.com/leeguooooo/chrome-use/pull/133).
 
-chrome-use can also run some commands from [OpenCLI](https://github.com/jackwener/opencli) (`@jackwener/opencli`), but only names neither pack has: an adapter here always takes priority over OpenCLI's command of the same name. Commands we rely on are ported here and maintained here instead of being run from OpenCLI: `douyin/delete`, `douyin/update` and `twitter/delete`, under OpenCLI's Apache-2.0 license with attribution (see each pack's README).
+chrome-use can also run some commands from [OpenCLI](https://github.com/jackwener/opencli) (`@jackwener/opencli`), but only names neither pack has: an adapter here always takes priority over OpenCLI's command of the same name. Commands we rely on are ported here and maintained here instead of being run from OpenCLI: `douyin/delete`, `douyin/update`, `twitter/delete`, `twitter/like`, `twitter/follow`, `bilibili/user-videos` and `bilibili/creator-stats`, under OpenCLI's Apache-2.0 license with attribution (see each pack's README).
 
 ## Install and update
 
@@ -37,11 +37,12 @@ Each pack documents itself in its own folder, in English (`README.md`) and Chine
 
 | pack | site | adapters | |
 | --- | --- | --- | --- |
-| [`twitter/`](twitter/) | x.com | `search`, `thread`, `user`, `post`, `delete` | read + post + delete |
+| [`twitter/`](twitter/) | x.com | `search`, `thread`, `user`, `post`, `delete`, `like`, `follow` | read + post + delete + like/follow |
 | [`xiaohongshu/`](xiaohongshu/) | www.xiaohongshu.com | `me` | read |
 | [`xiaohongshu-creator/`](xiaohongshu-creator/) | creator.xiaohongshu.com | `me`, `notes`, `note-stats` | read |
 | [`douyin-creator/`](douyin-creator/) | creator.douyin.com | `me`, `works`, `video-publish` | read + publish |
 | [`douyin/`](douyin/) | creator.douyin.com | `delete`, `update` | delete + edit works |
+| [`bilibili/`](bilibili/) | www.bilibili.com · member.bilibili.com | `user-videos`, `creator-stats` | read |
 | [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish` | publish |
 | [`youtube-studio/`](youtube-studio/) | studio.youtube.com | `channel`, `video-upload` | read + publish |
 | [`juejin/`](juejin/) · [`csdn/`](csdn/) · [`segmentfault/`](segmentfault/) · [`zhihu/`](zhihu/) | Chinese dev platforms | `article-publish` | publish |
@@ -74,4 +75,4 @@ Avoid arg names that collide with chrome-use global flags (`state`, `profile`, `
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Contributions are accepted under the same license. Exception: the files ported from OpenCLI (`douyin/delete.js`, `douyin/update.js`, `twitter/delete.js`) stay under the Apache License 2.0, with its text next to them (`LICENSE-OpenCLI`) and a header in each file saying what changed.
+MIT, see [LICENSE](LICENSE). Contributions are accepted under the same license. Exception: the files ported from OpenCLI (`douyin/delete.js`, `douyin/update.js`, `twitter/delete.js`, `twitter/like.js`, `twitter/follow.js`, `bilibili/user-videos.js`, `bilibili/creator-stats.js`) stay under the Apache License 2.0, with its text next to them (`LICENSE-OpenCLI`) and a header in each file saying what changed.

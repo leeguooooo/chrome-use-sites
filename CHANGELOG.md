@@ -8,6 +8,20 @@ file says what changed and when.
 ## 2026-10-11
 
 ### Added
+- `bilibili/user-videos`, `bilibili/creator-stats`, `twitter/like`,
+  `twitter/follow`: the rest of what the account-upkeep routine ran through
+  OpenCLI, ported from OpenCLI v1.8.8 (Apache-2.0, credited in each file and in
+  `bilibili/LICENSE-OpenCLI` / `twitter/LICENSE-OpenCLI`); chrome-use always
+  runs these files instead. `bilibili/user-videos` signs WBI in the page,
+  retries risk control (-352) once with fresh keys, pages past 50 videos,
+  resolves a 昵称 only on an exact match, and returns `null` (not 0) for counts
+  Bilibili leaves out. `bilibili/creator-stats` no longer fails on one missing
+  metric or one malformed row, and falls back to a video's public counts when it
+  is not among the account's latest 100. `twitter/like` and `twitter/follow`
+  never undo an existing like or follow, and wait for the button to change to
+  confirm; `twitter/follow` clicks only the profile's own button, never a
+  "Who to follow" suggestion (OpenCLI took the first one on the page). Run the
+  twitter two with `--until-done`: they open the tweet or profile first.
 - `douyin/delete`, `douyin/update`: delete a work from 作品管理, or change a
   scheduled work's publish time and its text. Ported from OpenCLI v1.8.8
   (Apache-2.0, credited in each file and in `douyin/LICENSE-OpenCLI`) so
