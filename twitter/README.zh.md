@@ -1,8 +1,8 @@
-# `twitter/` — X 搜索、对话串、个人资料和发推
+# `twitter/` — X 搜索、对话串、个人资料、发推、点赞和关注
 
 [English](README.md) · 中文
 
-这些 adapter 在你已登录的 `x.com` 标签页里直接调用 X 自己的 GraphQL 接口。`search`、`thread`、`user` 只读；`post` 会写入，用当前登录的账号发推或回复；`delete` 删除该账号的一条推文。chrome-use 驱动的那个浏览器里必须先登录 `x.com`（adapter 要用 `ct0` cookie）。
+这些 adapter 在你已登录的 `x.com` 标签页里直接调用 X 自己的 GraphQL 接口。`search`、`thread`、`user` 只读；`post` 会写入，用当前登录的账号发推或回复；`delete` 删除该账号的一条推文；`like` 点赞一条推文，`follow` 关注一个账号，两者都像人一样在页面上点，已经点过赞或已关注的不会被取消。chrome-use 驱动的那个浏览器里必须先登录 `x.com`（adapter 要用 `ct0` cookie）。
 
 `search` 和 `thread` 返回的每条推文字段一致：`likes`、`retweets`、`replies`、`bookmarks`，以及数值型的 `views`。X 不给或限制某项数据时，该字段为 `null`。
 
@@ -20,6 +20,8 @@ chrome-use site twitter/post --text @tweet.txt
 chrome-use site twitter/post --text @second.txt --reply_to https://x.com/you/status/123
 chrome-use site twitter/post --text @tweet.txt --media ./clip.mp4 --timeout 5m   # 原生视频
 chrome-use site twitter/delete https://x.com/you/status/123 --until-done
+chrome-use site twitter/like https://x.com/someone/status/123 --until-done
+chrome-use site twitter/follow someone --until-done
 ```
 
 ## Adapter 一览
@@ -31,6 +33,8 @@ chrome-use site twitter/delete https://x.com/you/status/123 --until-done
 | `twitter/user` | `[screen_name]`（不带 `@` 的用户名，也可以传主页链接） | 调 `UserByScreenName`。不传用户名时，从侧边栏的 Profile 链接读出当前登录账号。返回 `id, name, screen_name, url, bio, location, website, created_at, followers, following, tweets, media, likes, pinned_tweet_ids, verified`。 |
 | `twitter/post` | `--text <文本\|@文件> [--reply_to <id\|链接>] [--media <文件>] [--dry_run true]` | **会写入。** 通过 X 的 `CreateTweet` 发出，带上和网页版一样的 `X-Client-Transaction-Id` 请求头。返回 `{ ok, id, url, weighted_length, in_reply_to, media }`。`--dry_run true` 只返回 `{ ok, dry_run, weighted_length, variables, media }`，什么都不发。 |
 | `twitter/delete` | `<tweet>`（推文链接或数字 id） | **会删除。** 像人一样打开推文、点 ⋯ 菜单里的删除并确认。返回 `{ ok, status: "deleted", id }`。请加 `--until-done`：不在该推文页面时，第一次运行返回 `status: "navigating"` 并打开推文，重跑时才删除。 |
+| `twitter/like` | `<tweet>`（推文链接或数字 id） | **会写入。** 打开推文，点它的红心。返回 `{ ok, status: "liked" \| "already_liked", id }`；已点赞的推文不会再点。请加 `--until-done`（第一次运行返回 `status: "navigating"`）。 |
+| `twitter/follow` | `<username>`（带不带 `@` 的用户名，或主页链接） | **会写入。** 打开主页，点关注按钮。返回 `{ ok, status: "followed" \| "requested" \| "already_following" \| "already_requested", username, user_id }`；已关注的不会再点。请加 `--until-done`（第一次运行返回 `status: "navigating"`）。 |
 
 ### `twitter/user` 说明
 
@@ -47,6 +51,14 @@ chrome-use site twitter/delete https://x.com/you/status/123 --until-done
 - 只操作自身状态链接就是这条推文的那个 `<article>`，同页的引用推文或被回复的推文不会被删。菜单里的列表那一行（Add/remove from Lists / 列表）从不点击；英文和中文界面都可用。
 - 出错时什么都不删：`tweet_not_found`（推文页上没有它：已删除或不可见）、`menu_not_found`、`not_own_tweet`（菜单里没有删除）、`confirm_not_shown`。
 - 移植自 [OpenCLI](https://github.com/jackwener/opencli) v1.8.8 的 `clis/twitter/delete.js` 和 `clis/twitter/shared.js` 里的辅助函数，Copyright 2025 jackwener，Apache License 2.0（[LICENSE-OpenCLI](LICENSE-OpenCLI)）；文件开头写明了 chrome-use 的修改。chrome-use 运行这个文件，不再用 OpenCLI 的 `twitter/delete`。
+
+#### `twitter/like` 和 `twitter/follow` 说明
+
+- **可重复运行。** 红心已是 Unlike 就返回 `already_liked`；按钮已是“正在关注”/“待定”就返回 `already_following` / `already_requested`。这些情况都不点击，所以重跑不会取消点赞或取消关注。
+- **点对目标。** `like` 只在自身状态链接就是这条推文的 `<article>` 里点，同一对话页上的上级推文或回复不会被点赞。`follow` 只点主页本身的按钮（`data-testid="<用户 id>-follow"`，且标签里写着这个用户名），不会点“推荐关注”/“你可能喜欢”里的建议账号；有两个都没有标签的按钮时拒绝猜测。
+- **有验证。** 点击后最多等 6 秒，看同一条推文或同一个用户的按钮是否变化：变成 Unlike，或变成“正在关注”（`followed`）/“待定”（`requested`，受保护账号）。否则返回 `error: "unconfirmed"`：去页面看一眼，重跑是安全的。
+- 出错时什么都不点：`tweet_not_found`、`like_button_not_found`（未登录？）、`follow_button_not_found`、`own_account`、`user_not_found`、`blocked`，以及参数错误（用户名先校验再使用）。
+- 移植自 [OpenCLI](https://github.com/jackwener/opencli) v1.8.8 的 `clis/twitter/like.js` 和 `clis/twitter/follow.js`（以及 `clis/twitter/shared.js` 里的辅助函数），Copyright 2025 jackwener，Apache License 2.0（[LICENSE-OpenCLI](LICENSE-OpenCLI)）；每个文件开头写明了 chrome-use 的修改。chrome-use 运行这些文件，不再用 OpenCLI 的 `twitter/like` 和 `twitter/follow`。
 
 ## 依赖
 

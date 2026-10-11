@@ -2,7 +2,7 @@
 
 English · [中文](README.zh.md)
 
-One adapter for Bilibili's creator center at `member.bilibili.com`. `video-publish` uploads a local video, fills in the 投稿 form, and clicks 立即投稿 to publish, or 存草稿 to save a draft. It writes to your real account. You must be signed in to member.bilibili.com in the browser chrome-use drives. Account reads (`bilibili/me`, `bilibili/user-videos`, `bilibili/creator-stats`) are not in this repo. They come from the community pack / OpenCLI.
+One adapter for Bilibili's creator center at `member.bilibili.com`. `video-publish` uploads a local video, fills in the 投稿 form, and clicks 立即投稿 to publish, or 存草稿 to save a draft. It writes to your real account. You must be signed in to member.bilibili.com in the browser chrome-use drives. Account reads live elsewhere: `bilibili/user-videos` and `bilibili/creator-stats` are in [`bilibili/`](../bilibili/) in this repo; `bilibili/me` comes from the community pack.
 
 ## Commands
 
