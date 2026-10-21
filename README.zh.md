@@ -50,7 +50,7 @@ adapter 在你已登录的标签页里运行，所以**先登录目标网站**�
 | [`appstoreconnect/`](appstoreconnect/) | appstoreconnect.apple.com | `apps`、`app-create`、`builds` | 读取 + 创建 |
 | [`si12333/`](si12333/) | si.12333.gov.cn | `pension-payments` | 读取 |
 | [`hackernews/`](hackernews/) | news.ycombinator.com | `top`, `thread` | 读取 |
-| [`sggit/`](sggit/) | sg-git.pwtk.cc（自建 Gogs） | `pr-create`、`pr-list`、`pr-merge` | 读取 + 写入 |
+| [`sggit/`](sggit/) | sg-git-src.pwtk.cc（自建 Gogs） | `pr-create`、`pr-list`、`pr-merge` | 读取 + 写入 |
 
 改动记录在 [CHANGELOG.md](CHANGELOG.md)。每个 PR 都必须遵守的贡献规范：[CONTRIBUTING.zh.md](CONTRIBUTING.zh.md)。
 

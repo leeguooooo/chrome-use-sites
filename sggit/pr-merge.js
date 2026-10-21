@@ -1,8 +1,8 @@
 /* @meta
 {
   "name": "sggit/pr-merge",
-  "description": "Merge a pull request on our self-hosted Gogs (sg-git.pwtk.cc). Runs as you, in your logged-in tab; posts the merge form the way the web UI does. Intended for the dev PR (auto-merge); use with care on feature-test/main.",
-  "domain": "sg-git.pwtk.cc",
+  "description": "Merge a pull request on our self-hosted Gogs (sg-git-src.pwtk.cc). Runs as you, in your logged-in tab; posts the merge form the way the web UI does. Intended for the dev PR (auto-merge); use with care on feature-test/main.",
+  "domain": "sg-git-src.pwtk.cc",
   "args": {
     "pr": {"required": true, "description": "PR number, e.g. 134"},
     "repo": {"required": false, "description": "owner/name (default: ka-cn/super-admin)"},
@@ -20,7 +20,7 @@ async function (args) {
   if (!/^\d+$/.test(idx)) return { error: 'Missing/invalid argument: pr', hint: 'PR number, e.g. --pr 134 (or positional: site sggit/pr-merge 134)' };
   const style = args.style || 'create_merge_commit';
 
-  const origin = location.origin; // https://sg-git.pwtk.cc
+  const origin = location.origin; // https://sg-git-src.pwtk.cc
   const prUrl = origin + '/' + repo + '/pulls/' + idx;
 
   const g = await fetch(prUrl, { credentials: 'include', headers: { Accept: 'text/html' } });
