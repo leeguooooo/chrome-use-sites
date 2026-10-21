@@ -1,8 +1,8 @@
 /* @meta
 {
   "name": "sggit/pr-create",
-  "description": "Create a pull request on our self-hosted Gogs (sg-git.pwtk.cc). Runs as you, in your logged-in tab; posts the compare form the way the web UI does.",
-  "domain": "sg-git.pwtk.cc",
+  "description": "Create a pull request on our self-hosted Gogs (sg-git-src.pwtk.cc). Runs as you, in your logged-in tab; posts the compare form the way the web UI does.",
+  "domain": "sg-git-src.pwtk.cc",
   "args": {
     "base": {"required": true, "description": "Target branch: dev | feature-test | main"},
     "head": {"required": true, "description": "Source branch, e.g. feat/leo/xxx"},
@@ -23,7 +23,7 @@ async function (args) {
   if (args.base === args.head)
     return { error: 'base and head are the same branch (' + args.base + ')', hint: 'Gogs would create an empty PR — refusing.' };
 
-  const origin = location.origin; // https://sg-git.pwtk.cc
+  const origin = location.origin; // https://sg-git-src.pwtk.cc
   const comparePath = '/' + repo + '/compare/' + args.base + '...' + args.head;
   const compareUrl = origin + comparePath;
 

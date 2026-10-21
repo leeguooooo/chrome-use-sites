@@ -1,8 +1,8 @@
 /* @meta
 {
   "name": "sggit/pr-list",
-  "description": "List pull requests on our self-hosted Gogs (sg-git.pwtk.cc). Runs as you, in your logged-in tab.",
-  "domain": "sg-git.pwtk.cc",
+  "description": "List pull requests on our self-hosted Gogs (sg-git-src.pwtk.cc). Runs as you, in your logged-in tab.",
+  "domain": "sg-git-src.pwtk.cc",
   "args": {
     "repo": {"required": false, "description": "owner/name (default: ka-cn/super-admin)"},
     "status": {"required": false, "description": "open | closed | all (default: open). Use --status, not --state (--state is a reserved chrome-use flag)."}

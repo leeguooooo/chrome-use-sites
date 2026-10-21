@@ -1,8 +1,8 @@
-# `sggit/` — 自建 Gogs（`sg-git.pwtk.cc`）上的 PR 操作
+# `sggit/` — 自建 Gogs（`sg-git-src.pwtk.cc`）上的 PR 操作
 
 [English](README.md) · 中文
 
-在内部 Gogs `sg-git.pwtk.cc` 上一条命令建 PR、合 PR、列 PR，不用再去 compare 页面点来点去。`pr-list` 只读；`pr-create` 和 `pr-merge` 会写入（提交的是网页上同样的表单）。chrome-use 驱动的浏览器里必须已登录 `sg-git.pwtk.cc`，并且**连着 WARP**。
+在内部 Gogs `sg-git-src.pwtk.cc` 上一条命令建 PR、合 PR、列 PR，不用再去 compare 页面点来点去。`pr-list` 只读；`pr-create` 和 `pr-merge` 会写入（提交的是网页上同样的表单）。chrome-use 驱动的浏览器里必须已登录 `sg-git-src.pwtk.cc`，并且**连着 WARP**。
 
 ## 命令
 

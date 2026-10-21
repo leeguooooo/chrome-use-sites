@@ -144,4 +144,4 @@ file says what changed and when.
 
 ### Added
 - `sggit/pr-create`, `sggit/pr-list`, `sggit/pr-merge` for the self-hosted Gogs
-  at `sg-git.pwtk.cc`, and `install.sh`.
+  at `sg-git-src.pwtk.cc`, and `install.sh`.

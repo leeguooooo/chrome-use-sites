@@ -50,7 +50,7 @@ Each pack documents itself in its own folder, in English (`README.md`) and Chine
 | [`appstoreconnect/`](appstoreconnect/) | appstoreconnect.apple.com | `apps`, `app-create`, `builds` | read + create |
 | [`si12333/`](si12333/) | si.12333.gov.cn | `pension-payments` | read |
 | [`hackernews/`](hackernews/) | news.ycombinator.com | `top`, `thread` | read |
-| [`sggit/`](sggit/) | sg-git.pwtk.cc (self-hosted Gogs) | `pr-create`, `pr-list`, `pr-merge` | read + write |
+| [`sggit/`](sggit/) | sg-git-src.pwtk.cc (self-hosted Gogs) | `pr-create`, `pr-list`, `pr-merge` | read + write |
 
 Changes are logged in [CHANGELOG.md](CHANGELOG.md). Contribution rules, required for every PR: [CONTRIBUTING.md](CONTRIBUTING.md).
 
