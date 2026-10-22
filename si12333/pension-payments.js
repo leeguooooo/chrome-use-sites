@@ -50,19 +50,31 @@ async function(args) {
     return { error: 'not logged in', hint: '在 si.12333.gov.cn 用掌上12333扫码或电子社保卡登录后重试' };
   }
 
-  // Count completed payment queries; the page answers each with querySocialPayment.
-  if (!window.__si12333Hook) {
-    window.__si12333Hook = { done: 0 };
-    const open = XMLHttpRequest.prototype.open;
-    const send = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.open = function (m, u) { this.__siUrl = String(u); return open.apply(this, arguments); };
-    XMLHttpRequest.prototype.send = function () {
-      if (this.__siUrl && this.__siUrl.includes('querySocialPayment')) {
-        this.addEventListener('loadend', () => { window.__si12333Hook.done++; });
+  // Count completed payment queries; the page answers each with
+  // querySocialPayment. Read from resource timing rather than by patching
+  // XMLHttpRequest, so nothing of ours is left in the page (AGENTS.md,
+  // Stealth first).
+  // A PerformanceObserver sees each new entry even when the page's resource
+  // timing buffer (250 entries) is full; the buffered count is the fallback
+  // where observers are unavailable.
+  let seen = 0;
+  let observing = false;
+  try {
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) if (String(e.name).includes('querySocialPayment')) seen++;
+    }).observe({ type: 'resource' });
+    observing = true;
+  } catch (e) {}
+  const hook = {
+    get done() {
+      if (observing) return seen;
+      try {
+        return performance.getEntriesByType('resource').filter((e) => String(e.name).includes('querySocialPayment')).length;
+      } catch (e) {
+        return 0;
       }
-      return send.apply(this, arguments);
-    };
-  }
+    },
+  };
 
   const form = () => {
     let v = mainButton().__vue__;
@@ -89,7 +101,7 @@ async function(args) {
   const waitQuery = async (before) => {
     for (let i = 0; i < 80; i++) {
       await sleep(150);
-      if (window.__si12333Hook.done > before) { await sleep(600); return true; }
+      if (hook.done > before) { await sleep(600); return true; }
       if (loggedOut()) return false;
     }
     return false;
@@ -102,13 +114,13 @@ async function(args) {
       aae042: proto.clone().year(y2).month(11).date(1),
     });
     await sleep(200);
-    const before = window.__si12333Hook.done;
+    const before = hook.done;
     mainButton().click();
     let picker;
     for (let i = 0; i < 40; i++) {
       await sleep(150);
       picker = modals().find((m) => text(m).includes('请选择参保地'));
-      if (picker || window.__si12333Hook.done > before || loggedOut()) break;
+      if (picker || hook.done > before || loggedOut()) break;
     }
     if (loggedOut()) throw new Error('logged out');
     if (!picker) {
@@ -126,7 +138,7 @@ async function(args) {
     (w.querySelector('input') || w).click();
     await sleep(200);
     const ok = [...picker.querySelectorAll('button')].find((x) => text(x).replace(/\s/g, '') === '查询');
-    const before2 = window.__si12333Hook.done;
+    const before2 = hook.done;
     ok.click();
     if (!(await waitQuery(before2))) {
       if (loggedOut()) throw new Error('logged out');

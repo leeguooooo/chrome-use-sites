@@ -7,6 +7,20 @@ file says what changed and when.
 
 ## 2026-10-22
 
+### Changed (stealth)
+- `xiaohongshu-creator/*` (shared helper): no longer keeps the page's HTTP
+  client on `window.__chromeUseXhscClient`, and takes the chunk it pushes to
+  find webpack's require back out of the page's chunk list, with a nameless
+  id instead of `Symbol('chrome-use-xhsc')`.
+- `si12333/pension-payments`: counts the page's payment queries with a
+  `PerformanceObserver` instead of patching `XMLHttpRequest.prototype` and
+  keeping `window.__si12333Hook`.
+- `chatgpt/open-project`: clicks the sidebar link through `args.ui` with
+  chrome-use 1.5.253+.
+- New `stealth.test.js`: a write adapter that clicks or types must use
+  `args.ui`, and no adapter may set a named global on `window`
+  (CONTRIBUTING.md rule 6).
+
 ### Changed
 - `douyin-creator/video-publish`, `douyin/delete`, `bilibili-creator/video-publish`,
   `youtube-studio/video-upload`, `twitter/delete`, `twitter/like`,

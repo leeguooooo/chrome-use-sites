@@ -434,6 +434,18 @@ test('open-project opens any project by name via its sidebar link, not a convers
   assert.deepEqual(page.assigned, [])
 })
 
+test('open-project clicks the sidebar link through args.ui when chrome-use provides it', async () => {
+  const page = projectPage(['/g/g-p-bbb-blog/project'])
+  const calls = []
+  const args = { name: 'Blog illustrations' }
+  Object.defineProperty(args, 'ui', { value: { click: async (el) => { calls.push('ui'); el.click() } }, enumerable: false })
+  const r = await openProject(page, router({ '/api/auth/session': okJson(SESSION), '/backend-api/gizmos/snorlax/sidebar': okJson(SIDEBAR) }))(args)
+  assert.equal(r.opened, 'in_place')
+  assert.equal(r.ui_fallbacks, undefined)
+  assert.deepEqual(calls, ['ui'])
+  assert.deepEqual(page.clicked, ['/g/g-p-bbb-blog/project'])
+})
+
 test('open-project navigates when the project is not in the sidebar', async () => {
   const page = projectPage(['/g/g-p-bbb-blog/c/6aa2-old-chat'])
   const r = await openProject(page, router({ '/api/auth/session': okJson(SESSION), '/backend-api/gizmos/snorlax/sidebar': okJson(SIDEBAR) }))({ name: 'chatgpt-use' })
