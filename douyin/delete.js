@@ -33,6 +33,18 @@ async function(args) {
   const WORK_LIST = '/janus/douyin/creator/pc/work_list?status=0&count=20&scene=star_atlas&device_platform=android&aid=1128&max_cursor='
   const MAX_PAGES = 10
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  // chrome-use 1.5.253+ clicks through args.ui: real pointer events
+  // (isTrusted) at a human pace. Older versions, or a ui call that fails, get
+  // el.click(); ui_fallbacks in the result says when that happened.
+  const UI = args.ui || null
+  const uiFallbacks = []
+  const press = async (el) => {
+    if (UI) {
+      try { await UI.click(el); return } catch (e) { uiFallbacks.push(String(e && e.message || e)) }
+    }
+    el.click()
+  }
+  const withUi = (r) => (uiFallbacks.length ? Object.assign(r, { ui_fallbacks: uiFallbacks }) : r)
   const textOf = (node) => ((node && (node.innerText || node.textContent)) || '').trim()
   const normalize = (value) => String(value || '').replace(/\s+/g, ' ').trim()
   const idOf = (value) => (value == null ? '' : String(value))
@@ -161,7 +173,7 @@ async function(args) {
 
   const allTab = Array.from(D.querySelectorAll('button,[role="button"],span,div'))
     .find((element) => /^全部作品$/.test(normalize(textOf(element))))
-  if (allTab) allTab.click()
+  if (allTab) await press(allTab)
   await sleep(1000)
 
   const ids = { aweme_id: target.item.aweme_id, item_id: target.item.item_id }
@@ -172,24 +184,28 @@ async function(args) {
       const deleteButton = Array.from(card.querySelectorAll('button,[role="button"],span,div'))
         .find((element) => /^删除作品$/.test(normalize(textOf(element))))
       if (!deleteButton) return Object.assign({ error: 'delete_button_not_found', index: target.index, cardCount: cards.length, hint: 'Nothing was deleted' }, ids)
-      deleteButton.click()
+      await press(deleteButton)
       await sleep(800)
       const confirmButton = Array.from(D.querySelectorAll('button,[role="button"]'))
         .find((element) => ['确定', '确认', '删除'].includes(normalize(textOf(element))))
       if (!confirmButton) return Object.assign({ error: 'confirm_button_not_found', hint: 'The delete dialog did not show a confirm button; nothing was confirmed' }, ids)
-      confirmButton.click()
+      await press(confirmButton)
       for (let wait = 0; wait < 20; wait += 1) {
         await sleep(500)
         const after = await loadTarget()
         if (!after.ok && after.reason === 'not_found') {
-          return Object.assign({ ok: true, status: 'deleted', title: target.title }, ids)
+          return withUi(Object.assign({ ok: true, status: 'deleted', title: target.title }, ids))
         }
       }
       return Object.assign({ error: 'delete_not_confirmed', hint: 'Confirm was clicked but the work is still in work_list; check 作品管理 before retrying' }, ids)
     }
     // Cards load as the list scrolls; bring the last one into view.
     const lastCard = cards[cards.length - 1]
-    if (lastCard && lastCard.scrollIntoView) lastCard.scrollIntoView({ block: 'end' })
+    let wheeled = false
+    if (lastCard && UI) {
+      try { await UI.scroll(lastCard); wheeled = true } catch (e) { uiFallbacks.push(String(e && e.message || e)) }
+    }
+    if (!wheeled && lastCard && lastCard.scrollIntoView) lastCard.scrollIntoView({ block: 'end' })
     await sleep(500)
   }
   return Object.assign({

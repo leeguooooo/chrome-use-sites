@@ -5,6 +5,20 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-10-22
+
+### Changed
+- `douyin-creator/video-publish`, `douyin/delete`, `bilibili-creator/video-publish`,
+  `youtube-studio/video-upload`, `twitter/delete`, `twitter/like`,
+  `twitter/follow`: with chrome-use 1.5.253+ their clicks, typing, key presses
+  and list scrolling go through `args.ui`, which the daemon serves with real
+  pointer and key events (`isTrusted`) at a human pace, instead of the
+  adapter's own `el.click()`, `dispatchEvent` and `execCommand`, which a site
+  can tell apart from a person. Fixed pacing waits are jittered. A ui call that
+  fails (element covered, gone) falls back to the old events, and the result
+  lists it in `ui_fallbacks`; older chrome-use keeps the old events throughout.
+  YouTube text too long to type in the time left is inserted as before.
+
 ## 2026-10-12
 
 ### Fixed

@@ -47,6 +47,13 @@ async function(args) {
   const one = (sel) => all(sel).find(inForm) || null
   const hidden = (el) => !!(el && el.closest('[style*="display: none"]'))
   const rendered = (el) => typeof el.getClientRects !== 'function' || el.getClientRects().length > 0
+  // chrome-use 1.5.253+ does the clicking and typing itself (args.ui): real
+  // pointer and key events (isTrusted) at a human pace. Older versions, and a
+  // ui call that fails, get the synthetic events below; ui_fallbacks in the
+  // result says when that happened.
+  const UI = args.ui || null
+  const uiFallbacks = []
+  const pause = (lo, hi) => sleep(lo + Math.floor(Math.random() * (hi - lo + 1)))
 
   const STATEMENTS = {
     none: '内容无需标注',
@@ -67,12 +74,28 @@ async function(args) {
       await sleep(step || 80)
     }
   }
-  const click = (el) => {
+  const synthClick = (el) => {
     for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) {
       el.dispatchEvent(new W.MouseEvent(type, { bubbles: true, cancelable: true, view: W }))
     }
     if (typeof el.click === 'function') el.click()
     else el.dispatchEvent(new W.MouseEvent('click', { bubbles: true, cancelable: true, view: W }))
+  }
+  const click = async (el) => {
+    if (UI) {
+      try { await UI.click(el); return } catch (e) { uiFallbacks.push('click: ' + (e && e.message || e)) }
+    }
+    synthClick(el)
+  }
+  // Type into a plain <input> through args.ui, replacing what is there.
+  // Returns true when the field ended up holding the value.
+  const uiType = async (input, value, what) => {
+    if (!UI) return false
+    try {
+      await UI.type(input, value, { clear: true })
+      await pause(80, 200)
+    } catch (e) { uiFallbacks.push(what + ': ' + (e && e.message || e)) }
+    return input.value === value
   }
   const key = (el, name, code) => {
     for (const type of ['keydown', 'keypress', 'keyup']) {
@@ -281,6 +304,7 @@ async function(args) {
   if (up0.files > 1) warnings.push(up0.files + ' files (分P) are queued in this 稿件; all of them are submitted together')
 
   // ---- 标题 ----------------------------------------------------------------------
+  if (titleInput.value !== title) await uiType(titleInput, title, 'title')
   if (titleInput.value !== title) {
     setInput(titleInput, title)
     await sleep(60)
@@ -299,8 +323,8 @@ async function(args) {
       : currentStatement() && currentStatement() !== REPRINT ? null : STATEMENTS.none
   if (wantedStatement && currentStatement() !== wantedStatement) {
     if (left() < 1500) return incomplete('statement')
-    click(statementBox.querySelector('.bcc-select-input-wrap') || statementInput)
-    await sleep(120)
+    await click(statementBox.querySelector('.bcc-select-input-wrap') || statementInput)
+    await pause(120, 260)
     const option = all('li.bcc-option', statementBox).find((li) => text(li) === wantedStatement)
     if (!option) {
       return {
@@ -311,7 +335,7 @@ async function(args) {
     if (option.classList.contains('disabled') || option.classList.contains('bcc-option-disabled')) {
       return { error: '创作声明 option is disabled: ' + wantedStatement }
     }
-    click(option)
+    await click(option)
     const ok = await waitFor(() => currentStatement() === wantedStatement, 1000)
     if (!ok) return { error: 'Could not set 创作声明 to ' + wantedStatement, hint: 'Set it by hand and re-run without --declaration.' }
   }
@@ -328,7 +352,7 @@ async function(args) {
     if (!authEl) warnings.push('No 内容为自制 option on the form; 自制 was not declared')
     else {
       if (!authChecked()) {
-        click(authEl)
+        await click(authEl)
         await waitFor(authChecked, 800)
       }
       selfMade = authChecked()
@@ -339,6 +363,8 @@ async function(args) {
     // 内容为转载 shows a 转载来源 field once picked.
     const srcInput = await waitFor(() => all('input', statementBox).find((i) => i !== statementInput && i.getAttribute('type') !== 'checkbox' && !hidden(i)), 1000)
     if (!srcInput) return { error: 'No 转载来源 field after choosing 内容为转载', hint: 'Fill the source by hand, then re-run.' }
+    // Typed through args.ui the field blurs for real on the next click.
+    if (srcInput.value !== source) await uiType(srcInput, source, 'source')
     if (srcInput.value !== source) {
       setInput(srcInput, source)
       srcInput.dispatchEvent(new W.Event('blur', { bubbles: false }))
@@ -347,9 +373,12 @@ async function(args) {
     }
     done.push('type')
   }
-  // Close the menu if it is still open (a click outside).
+  // Close the menu if it is still open (a click outside). A real click on
+  // <body> would land on whatever sits at its centre, so that one stays synthetic.
   if (statementBox.querySelector('.bcc-select-list-wrap') && !hidden(statementBox.querySelector('.bcc-select-list-wrap'))) {
-    click(one('.video-title .section-title-container') || D.body)
+    const outside = one('.video-title .section-title-container')
+    if (outside) await click(outside)
+    else synthClick(D.body)
   }
 
   // ---- 分区 ------------------------------------------------------------------------
@@ -378,7 +407,7 @@ async function(args) {
     if (!matchesZone(zone)) {
       if (left() < 1500) return incomplete('category')
       const list = () => all('.drop-list-v2-item', zoneBox)
-      if (!list().length) click(zoneBox.querySelector('.select-controller'))
+      if (!list().length) await click(zoneBox.querySelector('.select-controller'))
       const items = await waitFor(() => (list().length ? list() : null), 1200)
       if (!items) return { error: 'The 分区 menu did not open', hint: 'Pick 分区 by hand and re-run without --category.' }
       const hit = pick(items)
@@ -388,11 +417,11 @@ async function(args) {
           hint: 'Current names: ' + items.map((it) => clean(it.getAttribute('title')) || text(it)).join(' / '),
         }
       }
-      if (!hit.it.classList.contains('drop-list-v2-item-selected')) click(hit.it)
-      else click(zoneBox.querySelector('.select-controller'))
+      if (!hit.it.classList.contains('drop-list-v2-item-selected')) await click(hit.it)
+      else await click(zoneBox.querySelector('.select-controller'))
       const ok = await waitFor(() => currentZone() === hit.name, 1000)
       if (!ok) return { error: 'Could not set 分区 to ' + hit.name }
-      await sleep(150) // tag suggestions follow the 分区
+      await pause(150, 300) // tag suggestions follow the 分区
     }
     zone = currentZone()
     if (zone !== category && segs.indexOf(zone) === -1) warnings.push('分区 "' + category + '" is not a current name; using ' + zone)
@@ -424,7 +453,10 @@ async function(args) {
     if (!c) break
     const name = text(c.querySelector('.label-item-v2-content') || c)
     const n0 = chips().length
-    click(c)
+    // With args.ui, aim at the chip's ✕ icon: a real click lands where it is
+    // aimed, and this removes the tag whether the handler sits on the chip or
+    // the icon. The synthetic fallback keeps the chip (SVG has no .click()).
+    await click((UI && c.querySelector('svg')) || c)
     if (await waitFor(() => chips().length < n0, 800, 40)) removed.push(name)
     else { warnings.push('Could not remove the tag "' + name + '"'); break }
   }
@@ -437,11 +469,17 @@ async function(args) {
     const before = toastTexts()
     const rec = recommended().find((r) => r.name === t) || recommended().find((r) => tagKey(r.name) === tagKey(t))
     if (rec) {
-      click(rec.el)
+      await click(rec.el)
     } else {
-      setInput(tagInput, t)
-      await sleep(30)
-      key(tagInput, 'Enter', 13)
+      let entered = false
+      if (await uiType(tagInput, t, 'tag')) {
+        try { await UI.press('Enter'); entered = true } catch (e) { uiFallbacks.push('enter: ' + (e && e.message || e)) }
+      }
+      if (!entered && chips().length === n0) {
+        if (tagInput.value !== t) setInput(tagInput, t)
+        await sleep(30)
+        key(tagInput, 'Enter', 13)
+      }
     }
     // Typed tags go through Bilibili's own check before they become a chip.
     const res = await waitFor(() => {
@@ -454,6 +492,7 @@ async function(args) {
       continue
     }
     skippedTags.push(res && res.toast ? t + ' (' + res.toast + ')' : t)
+    if (tagInput.value) await uiType(tagInput, '', 'tag clear')
     if (tagInput.value) setInput(tagInput, '')
   }
   if (!chips().length) return { error: 'No 标签 could be added', hint: 'Bilibili refused: ' + skippedTags.join('; ') }
@@ -465,6 +504,27 @@ async function(args) {
   const paras = () => all('p', editor).map((p) => String(p.textContent || '').replace(/ /g, ' ').replace(/\s+$/, ''))
   const editorText = () => paras().join('\n').replace(/\n+$/, '').replace(/^\n+/, '')
   const wantedDesc = description.split('\n').map((l) => l.replace(/\s+$/, '')).join('\n')
+  if (editorText() !== wantedDesc && UI) {
+    if (left() < 1800) return incomplete('description')
+    try {
+      await UI.click(editor)
+      await pause(60, 160)
+      if (clean(editor.textContent)) {
+        await UI.press('Mod+a')
+        await pause(60, 160)
+        await UI.press('Backspace')
+        await pause(100, 220)
+      }
+      if (!clean(editor.textContent)) {
+        const lines = wantedDesc.split('\n')
+        for (let i = 0; i < lines.length; i++) {
+          if (i > 0) { await UI.press('Enter'); await pause(60, 160) }
+          if (lines[i]) await UI.typeHere(lines[i])
+        }
+        await pause(100, 220)
+      }
+    } catch (e) { uiFallbacks.push('description: ' + (e && e.message || e)) }
+  }
   if (editorText() !== wantedDesc) {
     if (left() < 1800) return incomplete('description')
     editor.focus()
@@ -505,7 +565,7 @@ async function(args) {
     if (visKey !== 'public') return { error: '可见范围 option not found: ' + VISIBILITY[visKey], hint: 'The 投稿 page changed; this adapter needs updating.' }
     warnings.push('可见范围 not found on the form; left at Bilibili\'s default')
   } else if (!visChecked(visOpt)) {
-    click(visOpt)
+    await click(visOpt)
     await waitFor(() => visChecked(visOpt), 800)
     if (!visChecked(visOpt)) return { error: 'Could not set 可见范围 to ' + VISIBILITY[visKey] }
   }
@@ -517,7 +577,7 @@ async function(args) {
   if (cover === 'empty') {
     const first = all('.cover-ai .img-item-cover').find(inForm)
     if (first) {
-      click(first)
+      await click(first)
       if (await waitFor(() => !coverEmpty(), 1000)) cover = 'recommended_frame'
     }
     if (coverEmpty()) warnings.push('封面 is still empty; Bilibili may refuse the submit until one is chosen')
@@ -537,6 +597,7 @@ async function(args) {
       done,
       warnings,
       hint: 'The form is filled but the file is still uploading. Run the same command again in a little while; it submits once 上传完成.',
+      ...(uiFallbacks.length ? { ui_fallbacks: uiFallbacks } : {}),
     }
   }
 
@@ -556,6 +617,7 @@ async function(args) {
       cover,
       warnings,
       hint: 'Filled and uploaded; nothing was submitted. Run again without --submit false to click 「' + (draft ? '存草稿' : '立即投稿') + '」.',
+      ...(uiFallbacks.length ? { ui_fallbacks: uiFallbacks } : {}),
     }
   }
   if (captcha()) return CAPTCHA
@@ -580,8 +642,9 @@ async function(args) {
     cover,
     warnings,
   }
+  if (uiFallbacks.length) base.ui_fallbacks = uiFallbacks
   if (!draft) markPublishClick()
-  click(button)
+  await click(button)
   const outcome = await waitFor(() => {
     const s = successState()
     if (s) return { success: s }

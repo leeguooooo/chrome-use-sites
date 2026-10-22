@@ -38,6 +38,13 @@ async function(args) {
   const clean = (s) => String(s == null ? '' : s).replace(/[\u200b\u00a0]/g, ' ').replace(/\s+/g, ' ').trim()
   const text = (el) => clean(el && el.textContent)
   const all = (sel, root) => Array.from((root || D).querySelectorAll(sel))
+  // chrome-use 1.5.253+ does the clicking and typing itself (args.ui): real
+  // pointer and key events (isTrusted) at a human pace. Older versions, and a
+  // ui call that fails, get the synthetic events below; ui_fallbacks in the
+  // result says when that happened.
+  const UI = args.ui || null
+  const uiFallbacks = []
+  const pause = (lo, hi) => sleep(lo + Math.floor(Math.random() * (hi - lo + 1)))
 
   const DECLARATIONS = {
     ai: '内容由AI生成',
@@ -62,11 +69,17 @@ async function(args) {
       await sleep(step || 80)
     }
   }
-  const click = (el) => {
+  const synthClick = (el) => {
     for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) {
       el.dispatchEvent(new W.MouseEvent(type, { bubbles: true, cancelable: true, view: W }))
     }
     el.click()
+  }
+  const click = async (el) => {
+    if (UI) {
+      try { await UI.click(el); return } catch (e) { uiFallbacks.push('click: ' + (e && e.message || e)) }
+    }
+    synthClick(el)
   }
   const captcha = () =>
     all('iframe').some((f) => /captcha|verify/i.test(f.getAttribute('src') || '')) ||
@@ -281,6 +294,12 @@ async function(args) {
   // ---- title ----------------------------------------------------------------
   const titleInput = D.querySelector('input[placeholder*="作品标题"]')
   if (!titleInput) return { error: 'Title input not found', hint: 'The post page changed; this adapter needs updating.' }
+  if (titleInput.value !== title && UI) {
+    try {
+      await UI.type(titleInput, title, { clear: true })
+      await pause(80, 200)
+    } catch (e) { uiFallbacks.push('title: ' + (e && e.message || e)) }
+  }
   if (titleInput.value !== title) {
     titleInput.focus()
     const setter = Object.getOwnPropertyDescriptor(W.HTMLInputElement.prototype, 'value').set
@@ -330,7 +349,28 @@ async function(args) {
   const enter = () =>
     editor.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }))
 
-  if (plainText() !== description.split('\n').map((l) => l.trim()).join('\n')) {
+  const wantedText = description.split('\n').map((l) => l.trim()).join('\n')
+  if (plainText() !== wantedText && UI) {
+    try {
+      await UI.click(editor)
+      await caretToEnd()
+      if (!isEmpty()) {
+        await UI.press('Mod+a')
+        await pause(60, 160)
+        await UI.press('Backspace')
+        await pause(100, 220)
+      }
+      if (isEmpty()) {
+        const lines = description.split('\n')
+        for (let i = 0; i < lines.length; i++) {
+          if (i > 0) { await UI.press('Enter'); await pause(60, 160) }
+          if (lines[i].trim()) await UI.typeHere(lines[i].trim())
+        }
+        await pause(100, 220)
+      }
+    } catch (e) { uiFallbacks.push('description: ' + (e && e.message || e)) }
+  }
+  if (plainText() !== wantedText) {
     await caretToEnd()
     if (!isEmpty()) {
       // Replace whatever is there (an earlier attempt, the page's own draft).
@@ -368,7 +408,11 @@ async function(args) {
     await caretToEnd()
     const spaced = /\S$/.test(tailText())
     const typed = (spaced ? ' ' : '') + '#' + name
-    D.execCommand('insertText', false, typed)
+    let viaUi = false
+    if (UI) {
+      try { await UI.typeHere(typed); viaUi = true } catch (e) { uiFallbacks.push('topic: ' + (e && e.message || e)) }
+    }
+    if (!viaUi) D.execCommand('insertText', false, typed)
     // Wait for the list for THIS query (the previous one can linger a tick).
     const items = await waitFor(() => {
       const list = suggestionItems()
@@ -381,7 +425,7 @@ async function(args) {
       list.find((it) => it.name.toLowerCase() === name.toLowerCase() && exists(it))
     if (hit) {
       const n0 = chips().length
-      click(hit.el)
+      await click(hit.el)
       const ok = await waitFor(() => chips().length > n0, 1000, 60)
       if (ok) {
         topics.push(hit.name)
@@ -392,13 +436,20 @@ async function(args) {
     // still the tail of the editor (never backspace into anything else).
     await caretToEnd()
     if (tailText().replace(/\s+$/, '').endsWith(typed.trim())) {
-      for (let i = 0; i < chars(typed); i++) backspace()
+      if (UI) {
+        try { await UI.press('Backspace', { repeat: chars(typed) }) } catch (e) { uiFallbacks.push('backspace: ' + (e && e.message || e)) }
+      }
+      if (tailText().replace(/\s+$/, '').endsWith(typed.trim())) for (let i = 0; i < chars(typed); i++) backspace()
     } else {
       warnings.push('Could not remove the unmatched topic text "#' + name + '"; check 作品简介 before publishing')
     }
-    D.body.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }))
+    let escaped = false
+    if (UI) {
+      try { await UI.press('Escape'); escaped = true } catch (e) { uiFallbacks.push('escape: ' + (e && e.message || e)) }
+    }
+    if (!escaped) D.body.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }))
     skipped.push(name)
-    await sleep(50)
+    await pause(50, 150)
   }
   done.push('topics')
 
@@ -421,7 +472,7 @@ async function(args) {
     const current = () => text(row.querySelector('[class*="selectText"]') || box)
     if (current().indexOf(wanted) === -1) {
       if (left() < 1800) return incomplete('declaration')
-      click(box)
+      await click(box)
       // Re-query every time: the dialog re-renders when an option grows sub-choices.
       const dialog = () => all('.semi-modal').find((m) => /添加声明/.test(text(m)))
       const modal = await waitFor(dialog, 1500)
@@ -429,14 +480,14 @@ async function(args) {
       const radio = (label) => all('label', dialog() || modal).find((l) => text(l) === label)
       const r = radio(wanted)
       if (!r) return { error: 'Option not in the 自主声明 dialog: ' + wanted, hint: 'Douyin changed the options; this adapter needs updating.' }
-      click(r)
+      await click(r)
       if (declKey === 'repost') {
         const outside = await waitFor(() => radio('取材站外'), 800)
-        if (outside) click(outside)
+        if (outside) await click(outside)
       }
       const ok = await waitFor(() => all('button', dialog() || modal).find((b) => text(b) === '确定' && !b.disabled && b.getAttribute('disabled') == null), 800)
       if (!ok) return { error: 'The 自主声明 dialog would not confirm', hint: 'Finish it by hand, then re-run without --declaration.' }
-      click(ok)
+      await click(ok)
       await waitFor(() => !dialog(), 1000)
     }
     declaration = current() || wanted
@@ -448,7 +499,7 @@ async function(args) {
   const visLabel = visRow && all('label', visRow).find((l) => text(l) === VISIBILITY[visKey])
   if (!visLabel) return { error: '谁可以看 options not found', hint: 'The post page changed; this adapter needs updating.' }
   if (visLabel.getAttribute('data-checked') !== 'true') {
-    click(visLabel)
+    await click(visLabel)
     await waitFor(() => visLabel.getAttribute('data-checked') === 'true', 800)
     if (visLabel.getAttribute('data-checked') !== 'true') return { error: 'Could not set 谁可以看 to ' + VISIBILITY[visKey] }
   }
@@ -479,8 +530,9 @@ async function(args) {
   const toasts = () => all('.semi-toast-content-text, [class*="toast-content"]').map(text).filter(Boolean)
   const toastsBefore = toasts()
   if (!draft) markPublishClick()
-  click(button)
+  await click(button)
   const base = { title, topics, skipped_topics: skipped, declaration, visibility: VISIBILITY[visKey], warnings }
+  if (uiFallbacks.length) base.ui_fallbacks = uiFallbacks
   const outcome = await waitFor(() => {
     if (!/\/content\/post\/video/.test(String(W.location.pathname))) return { moved: true }
     if (captcha()) return { captcha: true }

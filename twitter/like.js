@@ -31,6 +31,18 @@ async function(args) {
   const W = window
   const D = document
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  // chrome-use 1.5.253+ clicks through args.ui: real pointer events
+  // (isTrusted) at a human pace. Older versions, or a ui call that fails, get
+  // el.click(); ui_fallbacks in the result says when that happened.
+  const UI = args.ui || null
+  const uiFallbacks = []
+  const press = async (el) => {
+    if (UI) {
+      try { await UI.click(el); return } catch (e) { uiFallbacks.push(String(e && e.message || e)) }
+    }
+    el.click()
+  }
+  const withUi = (r) => (uiFallbacks.length ? Object.assign(r, { ui_fallbacks: uiFallbacks }) : r)
   const isTwitterHost = (h) => h === 'x.com' || h === 'twitter.com' || h.endsWith('.x.com') || h.endsWith('.twitter.com')
   const statusPath = /^\/(?:[^/]+|i)\/status\/(\d+)\/?$/
 
@@ -93,11 +105,11 @@ async function(args) {
   if (unlike) return { ok: true, status: 'already_liked', id: tweetId }
   if (!like) return { error: 'like_button_not_found', id: tweetId, hint: 'The tweet has no Like button here; check that x.com is signed in. Nothing changed' }
 
-  like.click()
+  await press(like)
   // Confirm on the same tweet: its heart turns into Unlike.
   for (let i = 0; i < 24; i += 1) {
     await sleep(250)
-    if (button(findTargetArticle() || article, 'unlike')) return { ok: true, status: 'liked', id: tweetId }
+    if (button(findTargetArticle() || article, 'unlike')) return withUi({ ok: true, status: 'liked', id: tweetId })
   }
   return {
     error: 'unconfirmed',

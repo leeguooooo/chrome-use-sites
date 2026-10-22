@@ -33,6 +33,18 @@ async function(args) {
   const W = window
   const D = document
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  // chrome-use 1.5.253+ clicks through args.ui: real pointer events
+  // (isTrusted) at a human pace. Older versions, or a ui call that fails, get
+  // el.click(); ui_fallbacks in the result says when that happened.
+  const UI = args.ui || null
+  const uiFallbacks = []
+  const press = async (el) => {
+    if (UI) {
+      try { await UI.click(el); return } catch (e) { uiFallbacks.push(String(e && e.message || e)) }
+    }
+    el.click()
+  }
+  const withUi = (r) => (uiFallbacks.length ? Object.assign(r, { ui_fallbacks: uiFallbacks }) : r)
   const isTwitterHost = (h) => h === 'x.com' || h === 'twitter.com' || h.endsWith('.x.com') || h.endsWith('.twitter.com')
   const RESERVED = ['home', 'i', 'explore', 'search', 'notifications', 'messages', 'settings', 'compose', 'login', 'logout', 'signup', 'tos', 'privacy', 'jobs']
 
@@ -97,13 +109,13 @@ async function(args) {
   if (state === 'cancel') return { ok: true, status: 'already_requested', username: handle, user_id: userId, hint: 'The account is protected and a follow request is already pending' }
   if (state === 'unblock') return { error: 'blocked', username: handle, user_id: userId, hint: 'The signed-in account blocks @' + handle + '; unblock first. Nothing changed' }
 
-  btn.click()
+  await press(btn)
   // Confirm on the same user's button: it turns into -unfollow, or -cancel
   // when the account is protected and the follow is a request.
   for (let i = 0; i < 24; i += 1) {
     await sleep(250)
-    if (D.querySelector('[data-testid="' + userId + '-unfollow"]')) return { ok: true, status: 'followed', username: handle, user_id: userId }
-    if (D.querySelector('[data-testid="' + userId + '-cancel"]')) return { ok: true, status: 'requested', username: handle, user_id: userId, hint: 'The account is protected: a follow request was sent' }
+    if (D.querySelector('[data-testid="' + userId + '-unfollow"]')) return withUi({ ok: true, status: 'followed', username: handle, user_id: userId })
+    if (D.querySelector('[data-testid="' + userId + '-cancel"]')) return withUi({ ok: true, status: 'requested', username: handle, user_id: userId, hint: 'The account is protected: a follow request was sent' })
   }
   return {
     error: 'unconfirmed',

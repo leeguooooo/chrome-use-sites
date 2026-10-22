@@ -76,8 +76,8 @@ chrome-use site youtube-studio/channel --limit 0   # 只要总数
 
 ### `video-upload` 的实现方式
 
-- 只在 Studio 自己的对话框上触发真实 DOM 事件。Studio 是 shady DOM 上的 Polymer，它的点击处理认的是 DOM `click()`。
-- 标题和简介是全选后用一次 `execCommand('insertText')` 写进去的。
+- chrome-use 1.5.253+ 上，点击、打字和按键都走 `args.ui`：由 daemon 发真实的鼠标和键盘事件（trusted），按人的节奏来。标题和简介先点进去，全选 + Backspace 清空后再打字；本次运行剩余时间打不完的长文本改为直接插入。某次 `ui` 调用失败（比如元素被横幅挡住）时，退回合成事件，并记进结果的 `ui_fallbacks`。
+- 更早的 chrome-use 仍在 Studio 自己的对话框上用合成事件。Studio 是 shady DOM 上的 Polymer，它的点击处理认的是 DOM `click()`；标题和简介是全选后用一次 `execCommand('insertText')` 写进去的。
 - 进度从 `ytcp-video-upload-progress` 读取。
 - 在 详细信息 → 视频元素 → 检查 → 公开范围 之间切换时，每一步的 DOM 会重建，但 Studio 会保留填过的值。已经按这组参数核对过详细信息的运行会给对话框打个标记；没有标记的运行会先回到“详细信息”把每一项核对一遍。
 - 遇到人机验证或身份验证就报错停下，需要手动处理。
