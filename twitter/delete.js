@@ -29,6 +29,18 @@ async function(args) {
   const W = window
   const D = document
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  // chrome-use 1.5.253+ clicks through args.ui: real pointer events
+  // (isTrusted) at a human pace. Older versions, or a ui call that fails, get
+  // el.click(); ui_fallbacks in the result says when that happened.
+  const UI = args.ui || null
+  const uiFallbacks = []
+  const press = async (el) => {
+    if (UI) {
+      try { await UI.click(el); return } catch (e) { uiFallbacks.push(String(e && e.message || e)) }
+    }
+    el.click()
+  }
+  const withUi = (r) => (uiFallbacks.length ? Object.assign(r, { ui_fallbacks: uiFallbacks }) : r)
   const isTwitterHost = (h) => h === 'x.com' || h === 'twitter.com' || h.endsWith('.x.com') || h.endsWith('.twitter.com')
   const statusPath = /^\/(?:[^/]+|i)\/status\/(\d+)\/?$/
 
@@ -90,7 +102,7 @@ async function(args) {
   if (!moreMenu) return { error: 'menu_not_found', id: tweetId, hint: 'The tweet has no ⋯ menu here; check that x.com is signed in. Nothing changed' }
 
   const before = new Set(Array.from(D.querySelectorAll('[role="menuitem"]')))
-  moreMenu.click()
+  await press(moreMenu)
   await sleep(1000)
   const items = Array.from(D.querySelectorAll('[role="menuitem"]')).filter((item) => visible(item) && !before.has(item))
   // Delete / 删除, but never the "Add/remove from Lists" row.
@@ -99,13 +111,20 @@ async function(args) {
     return (text.includes('Delete') || text.includes('删除')) && !text.includes('List') && !text.includes('列表')
   })
   if (!deleteItem) return { error: 'not_own_tweet', id: tweetId, hint: 'The tweet menu has no Delete, so it is not this account\'s tweet. Nothing changed' }
-  deleteItem.click()
+  await press(deleteItem)
   await sleep(1000)
 
   const confirm = D.querySelector('[data-testid="confirmationSheetConfirm"]')
   if (!confirm) return { error: 'confirm_not_shown', id: tweetId, hint: 'The delete confirmation did not appear; nothing was confirmed' }
   // Report at once: X may leave the tweet's page after a delete, which would
   // end this run before it could answer.
+  // With args.ui the click is sent by selector and not awaited: the daemon
+  // serves a run's pending requests before it reads the result, so it still
+  // lands, and a page X leaves cannot take the answer with it.
+  if (UI) {
+    UI.click('[data-testid="confirmationSheetConfirm"]').catch(() => {})
+    return withUi({ ok: true, status: 'deleted', id: tweetId })
+  }
   confirm.click()
   return { ok: true, status: 'deleted', id: tweetId }
 }

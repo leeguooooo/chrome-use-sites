@@ -115,6 +115,23 @@ test('delete: finds the work by title when fewer cards render than work_list lis
   assert.equal(out.error, undefined)
 })
 
+test('delete: with args.ui the clicks and the list scrolling go through it', async () => {
+  const page = managePage({ rendered: 1 })
+  const calls = []
+  const ui = {
+    click: async (el) => { calls.push('click'); el.click() },
+    scroll: async (el) => { calls.push('scroll'); el.scrollIntoView && el.scrollIntoView({ block: 'end' }) },
+  }
+  const args = { aweme_id: TARGET }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const out = await load('./delete.js', page.env)(args)
+  assert.equal(out.status, 'deleted', JSON.stringify(out))
+  assert.deepEqual(page.deleted, [TARGET])
+  assert.equal(out.ui_fallbacks, undefined)
+  assert.ok(calls.includes('scroll'), 'more cards were loaded by scrolling through args.ui')
+  assert.ok(calls.filter((c) => c === 'click').length >= 2, 'delete and confirm went through args.ui')
+})
+
 test('delete: matches the 19-digit id exactly, not a neighbour that rounds the same', async () => {
   // 7694857245896576001 and ...275 both round to 7694857245896576000.
   const page = managePage({ rendered: 3 })

@@ -58,9 +58,9 @@ chrome-use site bilibili-creator/video-publish --title "…" --description "$(ca
 
 ### 实现方式
 
-- 只在页面自己的控件上触发真实 DOM 事件，不调用 B 站的 API。Vue 组件的状态只读不写：读“自制”是否勾上，以及投稿后的 `completeBvid`。
+- 只操作页面自己的控件，不调用 B 站的 API。chrome-use 1.5.253 起，点击和键入都走 `args.ui`，是真实的鼠标和键盘输入（trusted 事件），按人的节奏来；更早的版本，或某次 ui 调用失败时，改用合成的 DOM 事件，结果里的 `ui_fallbacks` 会列出这些回退。Vue 组件的状态只读不写：读“自制”是否勾上，以及投稿后的 `completeBvid`。
 - 标签在输入时由 B 站校验。被拒的会弹 toast，连同提示文字一起放进 `skipped_tags`，例如“程序员: 当前tag为话题专用，不允许自定义添加”。话题专用的标签要通过“参与话题”加，这个 adapter 不做。
-- 简介是 Quill 编辑器：每行用 `execCommand('insertText')` 写入，每段之间按一次回车，写完读回来比对。
+- 简介是 Quill 编辑器：逐行键入（没有 `args.ui` 时用 `execCommand('insertText')`），每段之间按一次回车，写完读回来比对。
 - 封面：保留 B 站给的。如果封面位还是空的，就点第一个推荐帧。
 - 每次运行约 7 秒。每一步动手前先检查，所以重跑会接着做，不会重复加标签或文字。手动输入的标签每个大约半秒，标签多的话第一次运行通常会以 `incomplete` 停一次。
 - 如果排队了多个文件（分P），会一起投稿，并给出 warning。

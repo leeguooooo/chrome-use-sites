@@ -448,6 +448,110 @@ test('ticks an existing playlist and warns about a missing one', async () => {
   assert.ok(r2.warnings.some((w) => /No playlist named "Nope"/.test(w)))
 })
 
+// chrome-use 1.5.253+ hands the adapter args.ui, which sends real pointer and
+// key events from the daemon. A stand-in that drives the same fake page.
+function fakeUi(env) {
+  const { window, document } = env
+  const calls = []
+  const label = (el) => typeof el === 'string' ? el : (el.getAttribute && (el.getAttribute('name') || el.id)) || el.tagName
+  const ui = {
+    click: async (el) => {
+      calls.push(['click', label(el)])
+      if (el.focus) el.focus()
+      el.click()
+    },
+    type: async (el, text, o) => {
+      calls.push(['type', text, !!(o && o.clear)])
+      if (el.focus) el.focus()
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+      setter.call(el, (o && o.clear ? '' : el.value) + text)
+      el.dispatchEvent(new window.Event('input', { bubbles: true }))
+    },
+    // Through the harness's execCommand, which holds the select-all state.
+    typeHere: async (text) => { calls.push(['typeHere', text]); document.execCommand('insertText', false, text) },
+    press: async (key, o) => {
+      calls.push(['press', key, (o && o.repeat) || 1])
+      if (key === 'Mod+a') document.execCommand('selectAll')
+      else if (key === 'Backspace') document.execCommand('insertText', false, '')
+      else if (key === 'Enter' || key === 'Escape') {
+        const target = key === 'Enter' ? document.activeElement : document.body
+        target.dispatchEvent(new window.KeyboardEvent('keydown', { key, bubbles: true }))
+      }
+    },
+  }
+  return { ui, calls }
+}
+
+test('with args.ui every click and keystroke goes through it, with the same result', async () => {
+  const env = studio({ progress: 'uploading', st: { description: 'an old description' } })
+  const { ui, calls } = fakeUi(env)
+  const args = { ...FULL, budgetMs: 600000 }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const r = await run(env, args)
+  assert.equal(r.status, 'uploading', JSON.stringify(r))
+  assert.equal(r.ui_fallbacks, undefined, JSON.stringify(r.ui_fallbacks))
+  assert.deepEqual(r.done, ['title', 'description', 'made_for_kids', 'ai_altered', 'tags', 'category', 'language', 'allow_embed'])
+  assert.equal(env.st.title, FULL.title)
+  assert.equal(env.st.description, FULL.description)
+  assert.equal(env.st.kids, false)
+  assert.equal(env.st.altered, false)
+  assert.deepEqual(env.st.tags, ['Claude Code', 'Codex', 'AI编程'])
+  assert.equal(env.st.language, '中文（简体）')
+  assert.equal(env.st.embed, true)
+  assert.ok(!env.log.published)
+  assert.ok(calls.some((c) => c[0] === 'typeHere' && c[1] === FULL.title))
+  assert.ok(calls.some((c) => c[0] === 'typeHere' && c[1] === FULL.description))
+  assert.ok(calls.some((c) => c[0] === 'press' && c[1] === 'Mod+a'), 'the old text is cleared with select-all')
+  assert.deepEqual(calls.filter((c) => c[0] === 'type'), [['type', 'Claude Code', true], ['type', 'Codex', true], ['type', 'AI编程', true]])
+  assert.equal(calls.filter((c) => c[0] === 'press' && c[1] === 'Enter').length, 3, 'each tag is entered with a key press')
+  assert.ok(calls.some((c) => c[0] === 'click' && c[1] === 'VIDEO_MADE_FOR_KIDS_NOT_MFK'))
+  assert.ok(calls.some((c) => c[0] === 'click' && c[1] === 'toggle-button'))
+})
+
+test('with args.ui the publish click goes through it too', async () => {
+  const env = studio({ progress: 'checked' })
+  const { ui, calls } = fakeUi(env)
+  const args = { ...FULL, budgetMs: 600000 }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const r = await run(env, args)
+  assert.equal(r.status, 'saved', JSON.stringify(r))
+  assert.equal(r.ui_fallbacks, undefined)
+  assert.equal(env.st.visibility, 'PRIVATE')
+  assert.equal(calls.filter((c) => c[0] === 'click' && c[1] === 'next-button').length, 3)
+  assert.ok(calls.some((c) => c[0] === 'click' && c[1] === 'done-button'))
+})
+
+test('a failing args.ui call falls back to synthetic events and says so', async () => {
+  const env = studio({ progress: 'checked' })
+  const fail = async () => { throw new Error('the element is covered by div.mask') }
+  const ui = { click: fail, type: fail, typeHere: fail, press: fail }
+  const args = { ...FULL, budgetMs: 600000 }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const r = await run(env, args)
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.status, 'saved')
+  assert.ok(env.log.published)
+  assert.equal(env.st.title, FULL.title)
+  assert.equal(env.st.description, FULL.description)
+  assert.deepEqual(env.st.tags, ['Claude Code', 'Codex', 'AI编程'])
+  assert.ok(r.ui_fallbacks.some((f) => /^click: .*covered by div\.mask/.test(f)), JSON.stringify(r.ui_fallbacks))
+  assert.ok(r.ui_fallbacks.some((f) => /^title: /.test(f)))
+})
+
+test('with args.ui, text too long to type in the time left is inserted instead', async () => {
+  const env = studio({ progress: 'uploading' })
+  const { ui, calls } = fakeUi(env)
+  const description = 'x'.repeat(4000)
+  const args = { ...FULL, description, budgetMs: 30000 }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const r = await run(env, args)
+  assert.equal(r.status, 'uploading', JSON.stringify(r))
+  assert.equal(env.st.description, description)
+  assert.ok(!calls.some((c) => c[0] === 'typeHere' && c[1] === description))
+  assert.ok(calls.some((c) => c[0] === 'typeHere' && c[1] === FULL.title), 'the short title is still typed')
+  assert.deepEqual(r.ui_fallbacks, ['description: too long to type in the time left, inserted instead'])
+})
+
 test('a step that will not advance ends in incomplete, not a publish', async () => {
   const env = studio({ stuckNext: true })
   const r = await run(env, FULL)

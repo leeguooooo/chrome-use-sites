@@ -273,6 +273,79 @@ test('draft: fills everything, picks existing topics, skips unknown ones, clicks
   assert.ok(!p.log.clicks.includes('publish'), 'a draft never clicks 发布')
 })
 
+// chrome-use 1.5.253+ hands the adapter args.ui, which sends real pointer and
+// key events from the daemon. A stand-in that drives the same fake page.
+function fakeUi(p) {
+  const { window, document, body } = p
+  const calls = []
+  let selectAll = false
+  const editor = () => body.querySelector('.editor-kit-container')
+  const focus = (el) => { if (el && el.focus) el.focus() }
+  const ui = {
+    click: async (el) => {
+      calls.push(['click', typeof el === 'string' ? el : (el.textContent || el.tagName || '').trim().slice(0, 12)])
+      focus(el)
+      el.click()
+    },
+    type: async (el, text, o) => {
+      calls.push(['type', text, !!(o && o.clear)])
+      focus(el)
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+      setter.call(el, (o && o.clear ? '' : el.value) + text)
+      el.dispatchEvent(new window.Event('input', { bubbles: true }))
+    },
+    typeHere: async (text) => { calls.push(['typeHere', text]); document.execCommand('insertText', false, text) },
+    press: async (key, o) => {
+      const n = (o && o.repeat) || 1
+      calls.push(['press', key, n])
+      if (key === 'Mod+a') { selectAll = true; return }
+      if (key === 'Backspace') {
+        if (selectAll) { selectAll = false; for (let i = 0; i < 2000 && (editor().textContent || '').trim(); i++) document.execCommand('delete'); return }
+        for (let i = 0; i < n; i++) document.execCommand('delete')
+        return
+      }
+      if (key === 'Enter') editor().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      if (key === 'Escape') body.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    },
+  }
+  return { ui, calls }
+}
+
+test('with args.ui every click and keystroke goes through it, with the same result', async () => {
+  const p = postPage({ preset: (lines) => { lines[0].push({ text: '旧的简介' }) } })
+  const { ui, calls } = fakeUi(p)
+  const args = { title: '三秒测试', description: '第一行\n第二行', topics: 'AI编程,zqxnotatopic', declaration: 'ai', visibility: 'private', draft: 'true' }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const r = await load(p)(args)
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.status, 'draft')
+  assert.equal(r.ui_fallbacks, undefined, JSON.stringify(r.ui_fallbacks))
+  const s = p.state()
+  assert.equal(s.title, '三秒测试')
+  assert.deepEqual(s.lines, ['第一行', '第二行 #AI编程# '], 'old text replaced, unknown topic taken back out')
+  assert.equal(s.declaration, '内容由AI生成')
+  assert.ok(s.visibility.includes('仅自己可见'))
+  assert.deepEqual(calls.find((c) => c[0] === 'type'), ['type', '三秒测试', true])
+  assert.ok(calls.some((c) => c[0] === 'press' && c[1] === 'Mod+a'), 'the old description is cleared with select-all')
+  assert.ok(calls.some((c) => c[0] === 'typeHere' && c[1] === '第一行'))
+  assert.ok(calls.some((c) => c[0] === 'press' && c[1] === 'Backspace' && c[2] >= '#zqxnotatopic'.length), 'the unknown topic is taken back out with one repeated Backspace')
+  assert.ok(calls.some((c) => c[0] === 'click' && c[1] === '暂存离开'), 'the draft button is clicked through args.ui')
+})
+
+test('a failing args.ui call falls back to synthetic events and says so', async () => {
+  const p = postPage()
+  const ui = { click: async () => { throw new Error('the element is covered by div.mask') },
+               type: async () => { throw new Error('boom') }, typeHere: async () => { throw new Error('boom') },
+               press: async () => { throw new Error('boom') } }
+  const args = { title: 'T', description: 'd', draft: 'true' }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const r = await load(p)(args)
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(p.state().title, 'T')
+  assert.ok(p.log.clicks.includes('draft'))
+  assert.ok(r.ui_fallbacks.some((f) => /covered by div.mask/.test(f)), JSON.stringify(r.ui_fallbacks))
+})
+
 test('publish: 发布 then the content manager; repost is declared 取材站外', async () => {
   const p = postPage()
   const r = await load(p)({ title: 'T', description: 'd', declaration: 'repost' })

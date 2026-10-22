@@ -343,6 +343,90 @@ test('publish: fills every field, swaps the pre-filled tags, submits and returns
   assert.ok(!p.log.clicks.some((c) => c.startsWith('vis:')), '公开可见 was already selected')
 })
 
+// chrome-use 1.5.253+ hands the adapter args.ui, which sends real pointer and
+// key events from the daemon. A stand-in that drives the same fake page.
+function fakeUi(p) {
+  const { window, document } = p
+  const calls = []
+  const label = (el) => (typeof el === 'string' ? el : (el.textContent || el.tagName || '').trim().slice(0, 12))
+  const focus = (el) => { if (el && el.focus) el.focus() }
+  const keyOn = (el, key, keyCode) => {
+    for (const type of ['keydown', 'keypress', 'keyup']) el.dispatchEvent(new window.KeyboardEvent(type, { key, keyCode, bubbles: true }))
+  }
+  const ui = {
+    click: async (el) => { calls.push(['click', label(el)]); focus(el); el.click() },
+    type: async (el, text, o) => {
+      calls.push(['type', text, !!(o && o.clear)])
+      focus(el)
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+      setter.call(el, (o && o.clear ? '' : el.value) + text)
+      el.dispatchEvent(new window.Event('input', { bubbles: true }))
+    },
+    typeHere: async (text) => { calls.push(['typeHere', text]); document.execCommand('insertText', false, text) },
+    press: async (key, o) => {
+      calls.push(['press', key, (o && o.repeat) || 1])
+      if (key === 'Mod+a') document.execCommand('selectAll')
+      else if (key === 'Backspace') document.execCommand('delete')
+      else if (key === 'Enter') keyOn(document.activeElement, 'Enter', 13)
+    },
+  }
+  return { ui, calls }
+}
+
+test('with args.ui every click and keystroke goes through it, with the same result', async () => {
+  const p = formPage()
+  // An old 简介 to replace.
+  const editor = p.body.querySelector('.desc-container .ql-editor')
+  editor.focus()
+  p.document.execCommand('insertText', false, '旧的简介')
+  editor.blur && editor.blur()
+  const { ui, calls } = fakeUi(p)
+  const args = { ...ARGS }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const r = await load(p)(args)
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.status, 'submitted')
+  assert.equal(r.ui_fallbacks, undefined, JSON.stringify(r.ui_fallbacks))
+  assert.deepEqual(r.removed_tags, ['日语MV', '听歌', '流行音乐'])
+  assert.equal(r.cover, 'recommended_frame')
+  const s = p.state()
+  assert.equal(s.title, ARGS.title)
+  assert.equal(s.statement, '含AI生成内容')
+  assert.equal(s.auth, true)
+  assert.equal(s.zone, '科技数码')
+  assert.deepEqual(s.tags, ['Claude Code', '编程', 'AI编程', '开源'])
+  assert.equal(s.desc, ARGS.description, 'old 简介 replaced')
+  assert.deepEqual(s.visibility, ['公开可见'])
+  assert.deepEqual(p.log.typedTags, ['Claude Code', 'AI编程', '开源'])
+  assert.deepEqual(calls.find((c) => c[0] === 'type'), ['type', ARGS.title, true])
+  for (const t of ['Claude Code', 'AI编程', '开源']) assert.ok(calls.some((c) => c[0] === 'type' && c[1] === t), 'tag typed through args.ui: ' + t)
+  assert.ok(calls.some((c) => c[0] === 'click' && c[1] === '编程'), '推荐标签 clicked through args.ui')
+  assert.ok(calls.some((c) => c[0] === 'click' && c[1] === '含AI生成内容'), '创作声明 picked through args.ui')
+  assert.ok(calls.some((c) => c[0] === 'press' && c[1] === 'Mod+a'), 'the old 简介 is cleared with select-all')
+  assert.ok(calls.some((c) => c[0] === 'typeHere' && c[1] === '第一段'))
+  assert.equal(calls.filter((c) => c[0] === 'press' && c[1] === 'Enter').length, 3 + 3, 'one Enter per typed tag and per new 简介 paragraph')
+  assert.ok(calls.some((c) => c[0] === 'click' && c[1] === '立即投稿'), '立即投稿 is clicked through args.ui')
+})
+
+test('a failing args.ui call falls back to synthetic events and says so', async () => {
+  const p = formPage()
+  const ui = { click: async () => { throw new Error('the element is covered by div.mask') },
+               type: async () => { throw new Error('boom') }, typeHere: async () => { throw new Error('boom') },
+               press: async () => { throw new Error('boom') } }
+  const args = { ...ARGS, draft: 'true' }
+  Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+  const r = await load(p)(args)
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.status, 'draft')
+  const s = p.state()
+  assert.equal(s.title, ARGS.title)
+  assert.deepEqual(s.tags, ['Claude Code', '编程', 'AI编程', '开源'])
+  assert.equal(s.desc, ARGS.description)
+  assert.ok(p.log.clicks.includes('draft'))
+  assert.ok(r.ui_fallbacks.some((f) => /covered by div.mask/.test(f)), JSON.stringify(r.ui_fallbacks))
+  assert.ok(r.ui_fallbacks.some((f) => /^title: boom/.test(f)), JSON.stringify(r.ui_fallbacks))
+})
+
 test('a re-run on a filled form changes nothing before submitting', async () => {
   const p = formPage({ uploading: true })
   const r1 = await load(p)(ARGS)

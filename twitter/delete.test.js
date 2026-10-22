@@ -46,6 +46,23 @@ function tweetPage({ url = `https://x.com/you/status/${ID}`, own = true, article
   return { env: { window: { location }, document }, log, assigned }
 }
 
+// chrome-use 1.5.253+ hands adapters args.ui (trusted input from the
+// daemon); a stand-in that records the call and clicks the stub.
+function recordingUi(document, fail) {
+  const calls = []
+  const ui = {
+    click: async (t) => {
+      calls.push(typeof t === 'string' ? t : 'element')
+      if (fail) throw new Error('the element is covered by div.mask')
+      ;(typeof t === 'string' ? document.querySelector(t) : t).click()
+    },
+    scroll: async (t) => { calls.push('scroll'); if (fail) throw new Error('could not scroll') },
+  }
+  return { ui, calls }
+}
+const withUi = (args, ui) => Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+
+
 test('off the tweet page it opens the tweet and asks for a rerun', async () => {
   const page = tweetPage({ url: 'https://x.com/home' })
   const out = await load(page.env)({ tweet: `https://x.com/you/status/${ID}` })
@@ -85,4 +102,14 @@ test('bad input is rejected before anything is clicked or opened', async () => {
   assert.match((await run({ tweet: 'https://x.com/you' })).error, /No tweet id/)
   assert.deepEqual(page.log.clicks, [])
   assert.deepEqual(page.assigned, [])
+})
+
+test('with args.ui every click goes through it; the confirm by selector, not awaited', async () => {
+  const page = tweetPage()
+  const { ui, calls } = recordingUi(page.env.document)
+  const out = await load(page.env)(withUi({ tweet: ID }, ui))
+  assert.deepEqual(out, { ok: true, status: 'deleted', id: ID })
+  await new Promise((r) => setImmediate(r))
+  assert.deepEqual(calls, ['element', 'element', '[data-testid="confirmationSheetConfirm"]'])
+  assert.deepEqual(page.log.clicks, ['more:' + ID, 'delete:' + ID, 'confirm'])
 })

@@ -80,6 +80,38 @@ test('like: likes the tweet whose own link matches, not the parent above it', as
   assert.equal(page.state[OTHER], false)
 })
 
+// chrome-use 1.5.253+ hands adapters args.ui (trusted input from the
+// daemon); a stand-in that records the call and clicks the stub.
+function recordingUi(document, fail) {
+  const calls = []
+  const ui = {
+    click: async (t) => {
+      calls.push(typeof t === 'string' ? t : 'element')
+      if (fail) throw new Error('the element is covered by div.mask')
+      ;(typeof t === 'string' ? document.querySelector(t) : t).click()
+    },
+    scroll: async (t) => { calls.push('scroll'); if (fail) throw new Error('could not scroll') },
+  }
+  return { ui, calls }
+}
+const withUi = (args, ui) => Object.defineProperty(args, 'ui', { value: ui, enumerable: false })
+
+test('like: with args.ui the heart is clicked through it; a failing ui falls back and says so', async () => {
+  let page = conversation()
+  let { ui, calls } = recordingUi(page.env.document)
+  let out = await loadAdapter('./like.js', page.env)(withUi({ tweet: ID }, ui))
+  assert.deepEqual(out, { ok: true, status: 'liked', id: ID })
+  assert.deepEqual(calls, ['element'])
+  assert.deepEqual(page.log.clicks, [`like:${ID}`])
+
+  page = conversation()
+  ;({ ui } = recordingUi(page.env.document, true))
+  out = await loadAdapter('./like.js', page.env)(withUi({ tweet: ID }, ui))
+  assert.equal(out.status, 'liked')
+  assert.deepEqual(out.ui_fallbacks, ['the element is covered by div.mask'])
+  assert.deepEqual(page.log.clicks, [`like:${ID}`])
+})
+
 test('like: an already-liked tweet is reported and never toggled off', async () => {
   const page = conversation({ liked: [ID] })
   const out = await loadAdapter('./like.js', page.env)({ tweet: `https://twitter.com/someone/status/${ID}/` })

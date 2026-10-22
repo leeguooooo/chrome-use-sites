@@ -58,9 +58,9 @@ chrome-use site bilibili-creator/video-publish --title "…" --description "$(ca
 
 ### How it works
 
-- It uses real DOM events only, on the page's own widgets. It makes no Bilibili API calls. Vue component state is only read: whether the 自制 box is ticked, and `completeBvid` after the submit.
+- It works only through the page's own widgets and makes no Bilibili API calls. With chrome-use 1.5.253+ every click and keystroke goes through `args.ui`, real pointer and key input (trusted events) at a human pace; older versions, or a ui call that fails, get synthetic DOM events instead, and the result lists those fallbacks in `ui_fallbacks`. Vue component state is only read: whether the 自制 box is ticked, and `completeBvid` after the submit.
 - Bilibili checks each tag when it is entered. A refusal shows up as a toast and lands in `skipped_tags` with its text, e.g. 程序员: 当前tag为话题专用，不允许自定义添加. Topic-only tags are joined via 参与话题, which this adapter does not do.
-- 简介 is a Quill editor. Each line goes in with `execCommand('insertText')` and each paragraph with an Enter key, then the text is read back and compared.
+- 简介 is a Quill editor. Each line is typed and each paragraph started with an Enter key (`execCommand('insertText')` without `args.ui`), then the text is read back and compared.
 - Cover: Bilibili's cover is kept. If the slot is still empty, the first recommended frame is clicked.
 - Each run has about 7 seconds. Each step checks before it acts, so a re-run continues without adding tags or text twice. Typed tags take about half a second each, so a first run with many tags usually stops once with `incomplete`.
 - If several files (分P) are queued, all of them are submitted together, with a warning.

@@ -76,8 +76,8 @@ Calls Studio's own `creator/get_creator_channels` and `creator/list_creator_vide
 
 ### How `video-upload` works
 
-- It uses Studio's own dialog with real DOM events only. Studio is Polymer on shady DOM, so a DOM `click()` is what its tap handlers take.
-- Title and description go in with one `execCommand('insertText')` over a select-all.
+- With chrome-use 1.5.253+ clicks, typing and key presses go through `args.ui`: real pointer and key events (trusted) at a human pace. Title and description are clicked into, cleared with select-all + Backspace and typed. Text too long to type in the run's time left is inserted instead. When a `ui` call fails (for example the element is covered by a banner), the run falls back to the synthetic event and lists it in `ui_fallbacks`.
+- Older chrome-use versions keep synthetic events on Studio's own dialog. Studio is Polymer on shady DOM, so a DOM `click()` is what its tap handlers take. Title and description go in with one `execCommand('insertText')` over a select-all.
 - Progress is read from `ytcp-video-upload-progress`.
 - Moving between 详细信息 → 视频元素 → 检查 → 公开范围 rebuilds each step's DOM, and Studio keeps the values. A run that already verified the details for these arguments marks the dialog. A run without that mark goes back to 详细信息 and checks every field first.
 - A captcha or identity check stops the run with an error. Clear it by hand.

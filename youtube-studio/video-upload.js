@@ -48,6 +48,14 @@ async function(args) {
     if (/^(0|false|no|n|off)$/i.test(String(v).trim())) return false
     return null
   }
+  // chrome-use 1.5.253+ does the clicking and typing itself (args.ui): real
+  // pointer and key events (isTrusted) at a human pace. Older versions, and a
+  // ui call that fails, get the synthetic events below; ui_fallbacks in the
+  // result says when that happened.
+  const UI = args.ui || null
+  const uiFallbacks = []
+  const pause = (lo, hi) => sleep(lo + Math.floor(Math.random() * (hi - lo + 1)))
+  const withFallbacks = (r) => { if (uiFallbacks.length && r && typeof r === 'object') r.ui_fallbacks = uiFallbacks; return r }
   const waitFor = async (fn, ms, step) => {
     const until = Date.now() + Math.max(0, Math.min(ms, left()))
     for (;;) {
@@ -58,9 +66,22 @@ async function(args) {
     }
   }
   // Studio is Polymer on shady DOM: a plain DOM click is what its tap
-  // handlers take. A pointer click at the element's centre is often
-  // occluded by a banner, and extra synthetic mousedown/up can toggle twice.
-  const click = (el) => el.click()
+  // handlers take, and extra synthetic mousedown/up can toggle twice. A
+  // pointer click at the element's centre is often occluded by a banner:
+  // UI.click then rejects ("covered by ...") and the DOM click takes over.
+  const synthClick = (el) => el.click()
+  const click = async (el) => {
+    if (UI) {
+      try { await UI.click(el); return } catch (e) { uiFallbacks.push('click: ' + (e && e.message || e)) }
+    }
+    synthClick(el)
+  }
+  const escape = async () => {
+    if (UI) {
+      try { await UI.press('Escape'); return } catch (e) { uiFallbacks.push('escape: ' + (e && e.message || e)) }
+    }
+    D.body.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }))
+  }
   const shown = (el) => {
     for (let p = el; p && p.getAttribute; p = p.parentElement) {
       if (p.hasAttribute('hidden') || p.getAttribute('aria-hidden') === 'true') return false
@@ -129,7 +150,7 @@ async function(args) {
     const saveBtn = () => D.querySelector('ytcp-button#save')
     const enabled = (b) => b && !b.hasAttribute('disabled') && b.getAttribute('aria-disabled') !== 'true'
     if (!popup()) {
-      click(field.querySelector('#select-button') || field)
+      await click(field.querySelector('#select-button') || field)
       if (!(await waitFor(popup, 2000))) return { error: 'The visibility picker did not open', url }
     }
     const host = popup()
@@ -137,18 +158,18 @@ async function(args) {
     const r = host.querySelector('tp-yt-paper-radio-button[name="' + VIS[visKey] + '"]')
     if (!r) return { error: 'Visibility option ' + VIS[visKey] + ' not found', url }
     if (r.getAttribute('aria-checked') !== 'true') {
-      click(r)
+      await click(r)
       await waitFor(() => r.getAttribute('aria-checked') === 'true', 800)
     }
     if (r.getAttribute('aria-checked') !== 'true') return { error: 'Could not pick ' + visKey, url }
     const ok = host.querySelector('#save-button')
     const cancel = host.querySelector('#cancel-button')
-    if (enabled(ok)) click(ok)
-    else if (cancel) click(cancel) // nothing changed in the popup
+    if (enabled(ok)) await click(ok)
+    else if (cancel) await click(cancel) // nothing changed in the popup
     await waitFor(() => !popup(), 1500)
     if (enabled(saveBtn())) {
       if (verification()) return VERIFY
-      click(saveBtn())
+      await click(saveBtn())
       const saved = await waitFor(() => !enabled(saveBtn()), Math.min(20000, Math.max(500, left() - 300)), 100)
       if (!saved) return { ok: false, status: 'save_clicked', url, visibility: visKey, warnings, hint: 'Clicked 保存 but it did not settle in time; reload the edit page and check.' }
       return { ok: true, status: 'visibility_changed', from: was, url, visibility: visKey, warnings }
@@ -263,7 +284,7 @@ async function(args) {
   const step = dialog && dialog.getAttribute('workflow-step')
   const videoId = dialog && dialog.getAttribute('video-id')
   const editId = (String(W.location.pathname || '').match(/^\/video\/([\w-]{11})\/edit/) || [])[1]
-  if (editId && !isOpen()) return editVisibility(editId)
+  if (editId && !isOpen()) return withFallbacks(await editVisibility(editId))
   if (justAttached && (step === 'SELECT_FILES' || !videoId)) {
     return { ok: true, status: 'incomplete', stopped_at: 'upload', file: localFile.name, size: localFile.size, hint: 'The file was handed over but Studio has not assigned a video id yet. Run the same command again to continue (--until-done does it for you).' }
   }
@@ -303,7 +324,7 @@ async function(args) {
 
   const warnings = []
   const done = []
-  const incomplete = (at) => ({
+  const incomplete = (at) => withFallbacks({
     ok: false,
     status: 'incomplete',
     stopped_at: at,
@@ -322,7 +343,7 @@ async function(args) {
     if (step !== 'DETAILS') {
       const badge = dialog.querySelector('#step-badge-0')
       if (!badge) return { error: 'Cannot get back to the 详细信息 step', hint: 'The dialog changed; this adapter needs updating.' }
-      click(badge)
+      await click(badge)
       if (!(await waitFor(() => dialog.getAttribute('workflow-step') === 'DETAILS' && dialog.querySelector('#title-textarea #textbox'), 2000))) {
         return incomplete('details')
       }
@@ -334,8 +355,31 @@ async function(args) {
       const box = dialog.querySelector(sel)
       if (!box) return { error: name + ' box not found', hint: 'The dialog changed; this adapter needs updating.' }
       if (same(boxText(box), value)) return null
-      // Typing keys into this box dropped part of a long multi-line text;
-      // one insertText over a full selection goes in whole.
+      // With args.ui: a trusted click into the box, select-all + Backspace,
+      // then real typing (newlines as Enter). Typing keys into this box once
+      // dropped part of a long multi-line text, so the result is checked and
+      // the insertText below replaces whatever landed if it is not whole.
+      // Typing ASCII goes at ~0.1 s a key; text that would not fit in the time
+      // left goes straight to insertText.
+      const typeMs = Array.from(value).filter((c) => c.charCodeAt(0) < 128).length * 150 + 1500
+      if (UI && typeMs > left() - 3000) uiFallbacks.push(name + ': too long to type in the time left, inserted instead')
+      else if (UI) {
+        try {
+          await UI.click(box)
+          if (boxText(box).trim()) {
+            await UI.press('Mod+a')
+            await pause(60, 160)
+            await UI.press('Backspace')
+            await pause(80, 200)
+          }
+          if (value) await UI.typeHere(value)
+          await waitFor(() => same(boxText(box), value), 800)
+          if (!same(boxText(box), value)) uiFallbacks.push(name + ': typed text did not take, inserted instead')
+          await pause(80, 200)
+        } catch (e) { uiFallbacks.push(name + ': ' + (e && e.message || e)) }
+        if (same(boxText(box), value)) return null
+      }
+      // One insertText over a full selection goes in whole.
       box.focus()
       D.execCommand('selectAll', false, null)
       D.execCommand('insertText', false, value)
@@ -345,12 +389,12 @@ async function(args) {
     }
     if (title != null) {
       const e = await setBox('#title-textarea #textbox', title, 'title')
-      if (e) return e
+      if (e) return withFallbacks(e)
       done.push('title')
     }
     if (description != null) {
       const e = await setBox('#description-textarea #textbox', description, 'description')
-      if (e) return e
+      if (e) return withFallbacks(e)
       done.push('description')
     }
 
@@ -358,7 +402,7 @@ async function(args) {
       const r = dialog.querySelector('tp-yt-paper-radio-button[name="' + name + '"]')
       if (!r) return false
       if (r.getAttribute('aria-checked') !== 'true') {
-        click(r)
+        await click(r)
         await waitFor(() => r.getAttribute('aria-checked') === 'true', 800)
       }
       return r.getAttribute('aria-checked') === 'true'
@@ -374,7 +418,7 @@ async function(args) {
       if (!trigger) return { error: 'Playlist selector not found', hint: 'The dialog changed; this adapter needs updating.' }
       if (text(trigger).split(/\s*[,，]\s*/).indexOf(playlist) === -1 && text(trigger).indexOf(playlist) === -1) {
         if (left() < 2500) return incomplete('playlist')
-        click(trigger)
+        await click(trigger)
         const pd = () => {
           const host = D.querySelector('ytcp-playlist-dialog')
           const p = host && host.querySelector('tp-yt-paper-dialog')
@@ -390,13 +434,13 @@ async function(args) {
         }
         const cb = boxes.find((b) => labelOf(b) === playlist) || boxes.find((b) => labelOf(b).toLowerCase() === playlist.toLowerCase())
         if (cb && !cb.hasAttribute('checked')) {
-          click(cb.querySelector('#checkbox') || cb)
+          await click(cb.querySelector('#checkbox') || cb)
           await waitFor(() => cb.hasAttribute('checked'), 800)
         }
         if (!cb) warnings.push('No playlist named "' + playlist + '"; the video was not added to one')
         const isDone = (b) => /^(完成|Done)$/.test(b.getAttribute('aria-label') || text(b))
         const closeBtn = all('button', host).find(isDone) || all('ytcp-button', host).find(isDone)
-        if (closeBtn) click(closeBtn)
+        if (closeBtn) await click(closeBtn)
         await waitFor(() => !pd(), 1000)
         if (cb && !cb.hasAttribute('checked')) return { error: 'Could not tick playlist "' + playlist + '"', url }
       }
@@ -410,7 +454,7 @@ async function(args) {
       if (!expanded()) {
         const toggle = dialog.querySelector('#toggle-button')
         if (!toggle) return { error: '显示高级设置 toggle not found', hint: 'The dialog changed; this adapter needs updating.' }
-        click(toggle)
+        await click(toggle)
         if (!(await waitFor(expanded, 2000))) return incomplete('advanced')
       }
 
@@ -429,12 +473,23 @@ async function(args) {
           if (chips().some((c) => c.toLowerCase() === t.toLowerCase())) continue
           if (left() < 1200) return incomplete('tags')
           const n0 = chips().length
-          input.focus()
-          input.value = t
-          input.dispatchEvent(new W.InputEvent('input', { bubbles: true, inputType: 'insertText', data: t }))
-          input.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }))
+          if (UI) {
+            try {
+              await UI.type(input, t, { clear: true })
+              await pause(60, 160)
+              await UI.press('Enter')
+              await waitFor(() => chips().length > n0, 800)
+              if (chips().length === n0) uiFallbacks.push('tag "' + t + '": typed tag did not take, set instead')
+            } catch (e) { uiFallbacks.push('tag "' + t + '": ' + (e && e.message || e)) }
+          }
+          if (chips().length === n0) {
+            input.focus()
+            input.value = t
+            input.dispatchEvent(new W.InputEvent('input', { bubbles: true, inputType: 'insertText', data: t }))
+            input.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }))
+          }
           if (!(await waitFor(() => chips().length > n0, 800))) {
-            return { error: 'Tag "' + t + '" was not added', hint: 'Add it by hand, then re-run without it.' }
+            return withFallbacks({ error: 'Tag "' + t + '" was not added', hint: 'Add it by hand, then re-run without it.' })
           }
         }
         done.push('tags')
@@ -459,23 +514,23 @@ async function(args) {
         const current = () => text(trigger.querySelector('.dropdown-trigger-text') || trigger)
         if (match({ text: current(), id: null })) return null
         if (left() < 2000) return incomplete(label)
-        click(trigger)
+        await click(trigger)
         const items = await waitFor(openMenuItems, 1500)
         if (!items) return { error: 'The ' + label + ' menu did not open', url }
         const item = items.find((it) => match({ text: text(it), id: it.getAttribute('test-id') }))
         if (!item) {
-          D.body.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }))
+          await escape()
           const some = items.slice(0, 20).map((it) => text(it)).join(' / ')
           return { error: 'No ' + label + ' named "' + name + '"', hint: 'Studio offers: ' + some + (items.length > 20 ? ' / …' : '') }
         }
         const want = text(item)
         if (want === current()) {
           // Already set; the argument just named it differently (a code).
-          D.body.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }))
+          await escape()
           await waitFor(() => !openMenuItems(), 800)
           return null
         }
-        click(item)
+        await click(item)
         await waitFor(() => current() === want, 1000)
         if (current() !== want) return { error: 'Could not set ' + label + ' to ' + want, url }
         return null
@@ -485,21 +540,21 @@ async function(args) {
         const c = category.toLowerCase()
         const e = await pick('#category', category, (o) =>
           o.text.toLowerCase() === c || (o.id && o.id.toLowerCase() === 'creator_video_category_' + c), 'category')
-        if (e) return e
+        if (e) return withFallbacks(e)
         done.push('category')
       }
       if (language) {
         const l = language.toLowerCase()
         const e = await pick('#language-input', language, (o) =>
           o.text.toLowerCase() === l || (o.id && o.id.toLowerCase() === l), 'language')
-        if (e) return e
+        if (e) return withFallbacks(e)
         done.push('language')
       }
 
       const embedBox = dialog.querySelector('#allow-embed ytcp-checkbox-lit')
       if (embedBox) {
         if (embedBox.hasAttribute('checked') !== embed) {
-          click(embedBox.querySelector('#checkbox') || embedBox)
+          await click(embedBox.querySelector('#checkbox') || embedBox)
           await waitFor(() => embedBox.hasAttribute('checked') === embed, 800)
           if (embedBox.hasAttribute('checked') !== embed) return { error: 'Could not ' + (embed ? 'allow' : 'disallow') + ' embedding', url }
         }
@@ -528,7 +583,7 @@ async function(args) {
   const p2 = progress()
   const ready = p2.state === 'checked' || (!waitChecks && p2.state !== 'uploading' && p2.state !== 'unknown')
   if (!ready) {
-    return {
+    return withFallbacks({
       ok: false,
       status: p2.state === 'uploading' || p2.state === 'checking' ? p2.state : 'processing',
       percent: p2.percent,
@@ -540,7 +595,7 @@ async function(args) {
       hint: 'Details are filled in. Nothing is published until ' + (waitChecks ? 'the upload and checks finish' : 'the upload finishes') +
         ': run the same command again in a little while.' +
         (/OVERDUE/.test(p2.checks) ? ' Studio says the checks are overdue (seen live for 10+ minutes on a 37 s Short); --wait_checks false saves now and the checks go on afterwards (use --visibility private for that).' : ''),
-    }
+    })
   }
   if (!/未发现任何问题|No issues found/i.test(p2.label)) warnings.push('Checks: ' + p2.label)
 
@@ -551,13 +606,13 @@ async function(args) {
     const next = dialog.querySelector('#next-button')
     if (!next || next.hasAttribute('disabled') || next.getAttribute('aria-disabled') === 'true') {
       const err = all('ytcp-form-error-tip', dialog).map(text).filter(Boolean)
-      return { error: 'Studio will not go on from ' + s0 + (err.length ? ': ' + err.join('; ') : ''), url, done }
+      return withFallbacks({ error: 'Studio will not go on from ' + s0 + (err.length ? ': ' + err.join('; ') : ''), url, done })
     }
     if (s0 === 'CHECKS' && p2.state === 'checked') {
       const ct = text(dialog.querySelector('ytcp-uploads-checks') || null)
       if (ct && !/未发现任何问题|No issues found/i.test(ct)) warnings.push('Checks step: ' + ct.slice(0, 300))
     }
-    click(next)
+    await click(next)
     if (!(await waitFor(() => dialog.getAttribute('workflow-step') !== s0, 2000))) return incomplete('steps')
   }
   if (dialog.getAttribute('workflow-step') !== 'REVIEW') return incomplete('steps')
@@ -565,7 +620,7 @@ async function(args) {
   const visRadio = await waitFor(() => dialog.querySelector('tp-yt-paper-radio-button[name="' + VIS[visKey] + '"]'), 1000)
   if (!visRadio) return { error: 'Visibility options not found', hint: 'The dialog changed; this adapter needs updating.' }
   if (visRadio.getAttribute('aria-checked') !== 'true') {
-    click(visRadio)
+    await click(visRadio)
     await waitFor(() => visRadio.getAttribute('aria-checked') === 'true', 800)
     if (visRadio.getAttribute('aria-checked') !== 'true') return { error: 'Could not set visibility to ' + visKey, url }
   }
@@ -576,11 +631,12 @@ async function(args) {
   if (left() < 1500) return incomplete('publish')
   const doneBtn = dialog.querySelector('#done-button')
   if (!doneBtn || doneBtn.hasAttribute('disabled') || doneBtn.getAttribute('aria-disabled') === 'true') {
-    return { error: 'The publish button is disabled', url, done, warnings }
+    return withFallbacks({ error: 'The publish button is disabled', url, done, warnings })
   }
   const base = { url, visibility: visKey, title: title, warnings }
   markPublishClick()
-  click(doneBtn)
+  await click(doneBtn)
+  if (uiFallbacks.length) base.ui_fallbacks = uiFallbacks
   const outcome = await waitFor(() => {
     if (verification()) return { verify: true }
     const pNow = dialog.querySelector('tp-yt-paper-dialog')
