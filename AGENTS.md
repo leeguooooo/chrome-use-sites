@@ -1,5 +1,9 @@
 # Agent rules for chrome-use-sites
 
+## Stealth first
+
+These adapters run in the user's real, signed-in browser on sites that watch for automation. Follow rule 6 of [CONTRIBUTING.md](CONTRIBUTING.md) in every change: input through `args.ui`, nothing named on `window`, no patched page objects, no DOM left behind, jittered waits. `stealth.test.js` fails the build on the first two. When reviewing or merging, check the rest, and say in the PR how the change behaves on the live page.
+
 ## Docs and changelog are required
 
 Every change follows [CONTRIBUTING.md](CONTRIBUTING.md): each pack keeps a `README.md` and a `README.zh.md` covering every adapter it has, and each change gets a dated entry in `CHANGELOG.md`. `docs.test.js` fails the build otherwise, and CI runs `node --test` on every PR.

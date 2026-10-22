@@ -87,6 +87,16 @@ async function(args) {
     return href.includes(id) && /\/project\/?$/.test(href);
   });
   if (link) {
+    // chrome-use 1.5.253+ clicks through args.ui: a real pointer click
+    // (isTrusted). The sidebar route is in-page, so the run survives it.
+    if (args && args.ui) {
+      try {
+        await args.ui.click(link);
+        return Object.assign(result, { opened: 'in_place' });
+      } catch (e) {
+        result.ui_fallbacks = [String((e && e.message) || e)];
+      }
+    }
     link.click();
     return Object.assign(result, { opened: 'in_place' });
   }

@@ -22,7 +22,13 @@ function xhscWebpackRequire() {
   const chunks = window.webpackChunkugc
   if (!chunks || typeof chunks.push !== 'function') return null
   let req = null
-  chunks.push([[Symbol('chrome-use-xhsc')], {}, (r) => { req = r }])
+  // A chunk with a fresh, nameless id hands back webpack's require. It is
+  // taken out of the page's chunk list again straight away, so nothing of
+  // ours stays in the page (AGENTS.md, Stealth first).
+  const entry = [[Symbol()], {}, (r) => { req = r }]
+  chunks.push(entry)
+  const at = Array.prototype.lastIndexOf.call(chunks, entry)
+  if (at !== -1) Array.prototype.splice.call(chunks, at, 1)
   return req && req.m ? req : null
 }
 
@@ -30,9 +36,13 @@ function xhscIsClient(c) {
   return !!(c && typeof c.get === 'function' && typeof c.post === 'function' && c.interceptors)
 }
 
+// Found once per run and kept here, not on window: a named global is
+// something the page can see.
+let xhscClientCache = null
+
 /** The page's signed HTTP client, or null if it cannot be found. */
 function xhscFindClient() {
-  if (xhscIsClient(window.__chromeUseXhscClient)) return window.__chromeUseXhscClient
+  if (xhscIsClient(xhscClientCache)) return xhscClientCache
   const req = xhscWebpackRequire()
   if (!req) return null
   for (const id of Object.keys(req.m)) {
@@ -47,7 +57,7 @@ function xhscFindClient() {
       let client = null
       try { client = req(Number(m[2]))[m[3]] } catch (e) { client = null }
       if (xhscIsClient(client)) {
-        window.__chromeUseXhscClient = client
+        xhscClientCache = client
         return client
       }
     }

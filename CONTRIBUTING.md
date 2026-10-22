@@ -2,7 +2,7 @@
 
 English · [中文](CONTRIBUTING.zh.md)
 
-These rules are required. `node --test` checks the first three and runs on every
+These rules are required. `node --test` checks rules 1–3 and 6 and runs on every
 pull request; a PR that fails it is not merged.
 
 1. **Bilingual docs per pack.** Every pack directory has `README.md` (English)
@@ -21,5 +21,14 @@ pull request; a PR that fails it is not merged.
    adapter against a real account: never against the live ChatGPT; one run per
    adapter, never a loop, on Xiaohongshu, Douyin and Bilibili; never publish,
    delete or change content nobody asked for.
+6. **Stealth first.** Adapters act in the user's real, signed-in account, and
+   anything the page can see can get it throttled or banned. A write adapter's
+   clicks, typing, key presses and scrolling go through `args.ui` (real input
+   events from chrome-use); its own `el.click()`, `dispatchEvent` and
+   `execCommand` stay only as the fallback for older chrome-use. No named
+   globals on `window`, no patching page objects or prototypes (such as
+   `XMLHttpRequest.prototype`), no DOM nodes left in the page, and fixed waits
+   get jitter. `stealth.test.js` checks the first two; reviewers check the rest
+   before merging.
 
 Adapter format and naming: see "Adding an adapter" in the [README](README.md).
