@@ -7,6 +7,11 @@ file says what changed and when.
 
 ## 2026-10-23
 
+### Fixed
+- `douyin-creator/video-publish`: a topic typed partly through an IME (such as
+  `AI编程`) was skipped when Douyin's suggestion list for the shorter query
+  (`#AI`) was still up; it now waits for the exact topic first.
+
 ### Changed (stealth)
 - `douyin-creator/video-publish`, `twitter/post`: with chrome-use 1.5.260+
   the file input is handed to `setOn` as an element, so Douyin's video input
