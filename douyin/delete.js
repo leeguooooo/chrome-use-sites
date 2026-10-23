@@ -19,6 +19,7 @@
     "aweme_id": {"required": true, "description": "The work's id (aweme_id or item_id, digits only), e.g. from douyin-creator/works"}
   },
   "capabilities": ["network", "dom"],
+  "world": "isolated",
   "readOnly": false,
   "example": "chrome-use site douyin/delete 7694857245896576275 --until-done"
 }
@@ -37,6 +38,7 @@ async function(args) {
   // (isTrusted) at a human pace. Older versions, or a ui call that fails, get
   // el.click(); ui_fallbacks in the result says when that happened.
   const UI = args.ui || null
+  const PAGE = args.page || null
   const uiFallbacks = []
   const press = async (el) => {
     if (UI) {
@@ -101,9 +103,14 @@ async function(args) {
     for (let page = 0; page < MAX_PAGES; page += 1) {
       let payload
       try {
-        const res = await fetch(WORK_LIST + encodeURIComponent(cursor), { credentials: 'include' })
-        if (!res.ok) return { ok: false, reason: 'work_list_http_' + res.status }
-        payload = parseJsonKeepingBigInts(await res.text())
+        // Through the page's own fetch (chrome-use 1.5.259+ runs this
+        // adapter in an isolated world): Douyin signs /janus requests in its
+        // fetch wrapper, which a fetch from the isolated world skips.
+        const got = PAGE
+          ? await PAGE(async (url) => { const r = await fetch(url, { credentials: 'include' }); return { ok: r.ok, status: r.status, text: r.ok ? await r.text() : '' } }, WORK_LIST + encodeURIComponent(cursor))
+          : await (async () => { const r = await fetch(WORK_LIST + encodeURIComponent(cursor), { credentials: 'include' }); return { ok: r.ok, status: r.status, text: r.ok ? await r.text() : '' } })()
+        if (!got.ok) return { ok: false, reason: 'work_list_http_' + got.status }
+        payload = parseJsonKeepingBigInts(got.text)
       } catch (e) {
         return { ok: false, reason: 'work_list_failed', message: String((e && e.message) || e) }
       }

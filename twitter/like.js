@@ -21,6 +21,7 @@
     "tweet": {"required": true, "description": "The tweet's status URL (https://x.com/name/status/123…) or its numeric id"}
   },
   "capabilities": ["dom"],
+  "world": "isolated",
   "readOnly": false,
   "example": "chrome-use site twitter/like https://x.com/someone/status/1890000000000000000 --until-done"
 }

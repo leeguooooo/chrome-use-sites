@@ -102,6 +102,25 @@ test('delete: off 作品管理 it opens it and asks for a rerun', async () => {
   assert.equal(page.requests.length, 0)
 })
 
+// chrome-use 1.5.259+ runs this adapter in an isolated world and hands it
+// args.page for page-only state; a stand-in that runs the function here.
+const recordingPage = () => {
+  const calls = []
+  const page = async (fn, ...a) => { calls.push(a); return fn(...a) }
+  return { page, calls }
+}
+
+test('delete: with args.page work_list is fetched through the page (its fetch signs /janus)', async () => {
+  const page = managePage({ rendered: 1 })
+  const { page: pageFn, calls } = recordingPage()
+  const args = { aweme_id: TARGET }
+  Object.defineProperty(args, 'page', { value: pageFn, enumerable: false })
+  const out = await load('./delete.js', page.env)(args)
+  assert.equal(out.status, 'deleted', JSON.stringify(out))
+  assert.deepEqual(page.deleted, [TARGET])
+  assert.ok(calls.some((a) => String(a[0]).includes('work_list')), 'work_list went through args.page')
+})
+
 test('delete: finds the work by title when fewer cards render than work_list lists', async () => {
   // One card at first, the rest after scrolling: a lookup by position needed
   // all three and failed with card_not_found (chrome-use#508).

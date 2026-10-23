@@ -346,6 +346,35 @@ test('a failing args.ui call falls back to synthetic events and says so', async 
   assert.ok(r.ui_fallbacks.some((f) => /covered by div.mask/.test(f)), JSON.stringify(r.ui_fallbacks))
 })
 
+// chrome-use 1.5.259+ runs this adapter in an isolated world and hands it
+// args.page for page-only state; a stand-in that runs the function here.
+const recordingPage = () => {
+  const calls = []
+  const page = async (fn, ...a) => { calls.push(a); return fn(...a) }
+  return { page, calls }
+}
+
+test('with args.page the uploader state is read through it', async () => {
+  const p = postPage()
+  const { page, calls } = recordingPage()
+  const args = { title: 'T', description: 'd', draft: 'true' }
+  Object.defineProperty(args, 'page', { value: page, enumerable: false })
+  const r = await load(p)(args)
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.status, 'draft')
+  assert.ok(calls.length >= 1, 'the React uploader state came through args.page')
+})
+
+test('with args.page and a page still uploading, the run waits on it and reports uploading', async () => {
+  const p = postPage({ upload: { uploadStatus: 1, uploadPercent: 40 } })
+  const { page } = recordingPage()
+  const args = { title: 'T', description: 'd', draft: 'true' }
+  Object.defineProperty(args, 'page', { value: page, enumerable: false })
+  const r = await load(p)(args)
+  assert.equal(r.status, 'uploading', JSON.stringify(r))
+  assert.equal(r.upload_percent, 40)
+})
+
 test('publish: 发布 then the content manager; repost is declared 取材站外', async () => {
   const p = postPage()
   const r = await load(p)({ title: 'T', description: 'd', declaration: 'repost' })
