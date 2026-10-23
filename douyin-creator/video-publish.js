@@ -441,11 +441,17 @@ async function(args) {
       try { await UI.typeHere(typed); viaUi = true } catch (e) { uiFallbacks.push('topic: ' + (e && e.message || e)) }
     }
     if (!viaUi) D.execCommand('insertText', false, typed)
-    // Wait for the list for THIS query (the previous one can linger a tick).
-    const items = await waitFor(() => {
-      const list = suggestionItems()
-      return list.length && list.some((it) => it.name.toLowerCase().indexOf(name.toLowerCase().slice(0, 2)) === 0) ? list : null
-    }, 1800, 100)
+    // Wait for the list for THIS query. The list for a shorter query lingers
+    // a while (typed through an IME, the Chinese part commits after the ASCII
+    // part, and Douyin updates the list after that), and it already matches a
+    // prefix check: so first wait for the exact topic, then fall back to the
+    // prefix check to tell an unknown topic from a slow list.
+    const exactIn = (list) => list.some((it) => it.name.toLowerCase() === name.toLowerCase() && it.count && it.count !== '0')
+    const items = (await waitFor(() => { const list = suggestionItems(); return exactIn(list) ? list : null }, 2200, 100)) ||
+      await waitFor(() => {
+        const list = suggestionItems()
+        return list.length && list.some((it) => it.name.toLowerCase().indexOf(name.toLowerCase().slice(0, 2)) === 0) ? list : null
+      }, 600, 100)
     const list = items || []
     // A count of "0" is Douyin offering to create a brand-new topic.
     const exists = (it) => it.count && it.count !== '0'
