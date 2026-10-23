@@ -236,12 +236,14 @@ function localVideo(doc, bytes) {
   return {
     name: 'clip.mp4',
     size: bytes,
-    setOn: async (sel) => { doc.nodes[sel.slice(1)].files = [file] },
+    // chrome-use 1.5.260+ takes the (detached) input itself; older versions a selector.
+    setOn: async (sel) => { if (typeof sel === 'object') { sel.files = [file]; return } doc.nodes[sel.slice(1)].files = [file] },
   }
 }
 
 test('post uploads a video in chunks, waits for processing, then tweets it', async () => {
   const doc = mediaDoc()
+  const appended = Object.keys(doc.nodes).length
   const calls = []
   let statusPolls = 0
   const adapter = loadAdapter('./post.js', {
@@ -267,6 +269,7 @@ test('post uploads a video in chunks, waits for processing, then tweets it', asy
   assert.deepEqual(r.media, ['M1'])
   assert.deepEqual(calls.slice(0, 5), ['INIT', 'APPEND', 'APPEND', 'APPEND', 'FINALIZE'])
   assert.equal(statusPolls, 1)
+  assert.equal(Object.keys(doc.nodes).length, appended, 'no input was added to the page')
 })
 
 test('post stops before tweeting when the media upload fails', async () => {

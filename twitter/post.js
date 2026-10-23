@@ -107,18 +107,30 @@ async function(args) {
   if (localFile) {
     // chrome-use puts the local file on a file input in this page; read it back
     // from there and upload it the way the web composer does.
-    let input = document.getElementById('cu-twitter-post-media');
-    if (!input) {
-      input = document.createElement('input');
-      input.type = 'file';
-      input.id = 'cu-twitter-post-media';
-      input.style.display = 'none';
-      document.body.appendChild(input);
-    }
+    // chrome-use 1.5.260+ sets the file on an input handed over as an
+    // element, also one that is not in the page: nothing is added to x.com's
+    // DOM. Older chrome-use needs it in the page under an id.
+    let input = document.createElement('input');
+    input.type = 'file';
+    let attached = false;
     try {
-      await localFile.setOn('#cu-twitter-post-media');
-    } catch (e) {
-      return {error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e)};
+      await localFile.setOn(input);
+      attached = !!(input.files && input.files[0]);
+    } catch (e) {}
+    if (!attached) {
+      input = document.getElementById('cu-twitter-post-media');
+      if (!input) {
+        input = document.createElement('input');
+        input.type = 'file';
+        input.id = 'cu-twitter-post-media';
+        input.style.display = 'none';
+        document.body.appendChild(input);
+      }
+      try {
+        await localFile.setOn('#cu-twitter-post-media');
+      } catch (e) {
+        return {error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e)};
+      }
     }
     const file = input.files && input.files[0];
     if (!file) return {error: 'The file did not reach the page', hint: 'Retry; nothing was posted.'};
