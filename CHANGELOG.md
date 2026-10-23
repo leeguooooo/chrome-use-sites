@@ -8,6 +8,11 @@ file says what changed and when.
 ## 2026-10-23
 
 ### Changed (stealth)
+- `douyin-creator/video-publish`, `twitter/post`: with chrome-use 1.5.260+
+  the file input is handed to `setOn` as an element, so Douyin's video input
+  is no longer marked `data-cu-file` and `twitter/post` adds no
+  `#cu-twitter-post-media` input to x.com (it sets the file on a detached
+  one). Older chrome-use keeps the old way.
 - `douyin-creator/video-publish`, `douyin/delete`, `bilibili-creator/video-publish`,
   `youtube-studio/video-upload`, `twitter/delete`, `twitter/like`,
   `twitter/follow`: declare `"world": "isolated"`, so chrome-use 1.5.259+ runs

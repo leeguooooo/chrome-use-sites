@@ -213,12 +213,18 @@ async function(args) {
       if (!(prev && prev.file === fileStamp && Date.now() - prev.at < 120000)) {
         const input = await waitFor(() => all('input[type="file"]').find((i) => /video|\.mp4/i.test(i.getAttribute('accept') || '')), 5000)
         if (!input) return { error: 'No video file input on the upload page', hint: 'The upload page changed; upload with chrome-use upload instead.' }
-        input.setAttribute('data-cu-file', 'video')
         progress('uploading ' + localFile.name)
-        try {
-          await localFile.setOn('input[data-cu-file="video"]')
-        } catch (e) {
-          return { error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e) }
+        // chrome-use 1.5.260+ takes the input itself; older versions need it
+        // named by a selector, so it is marked only then.
+        let attached = false
+        try { await localFile.setOn(input); attached = true } catch (e) {}
+        if (!attached) {
+          input.setAttribute('data-cu-file', 'video')
+          try {
+            await localFile.setOn('input[data-cu-file="video"]')
+          } catch (e) {
+            return { error: 'Could not attach ' + localFile.name + ': ' + ((e && e.message) || e) }
+          }
         }
         try { W.sessionStorage.setItem(MARK, JSON.stringify({ file: fileStamp, at: Date.now() })) } catch (_) {}
       }

@@ -466,9 +466,10 @@ const localVideo = (page, calls) => ({
   path: '/abs/clip.mp4',
   name: 'clip.mp4',
   size: 16281,
+  // chrome-use 1.5.260+ also takes the input element itself.
   setOn: async (selector) => {
     calls.push(selector)
-    const input = page.body.querySelector(selector)
+    const input = typeof selector === 'object' ? selector : page.body.querySelector(selector)
     assert.ok(input, 'setOn must name an element that exists: ' + selector)
     input.files = [{ name: 'clip.mp4', size: 16281 }]
     return { attached: 1 }
@@ -501,6 +502,7 @@ test('--video on the upload page: hands the file to the video input once', async
   assert.equal(r.file, 'clip.mp4')
   assert.equal(calls.length, 1)
   assert.equal(p.body.querySelector('input[type="file"]').files.length, 1)
+  assert.equal(p.body.querySelector('input[type="file"]').getAttribute('data-cu-file'), null, 'the input is handed over, not marked')
   assert.deepEqual(notes, ['uploading clip.mp4'])
 
   // A rerun that still lands on the upload page (slow navigation) must not
