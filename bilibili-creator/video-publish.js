@@ -18,6 +18,7 @@
     "submit": {"required": false, "description": "false = fill the form and stop before 立即投稿 / 存草稿, to check it first (default true)"}
   },
   "capabilities": ["dom"],
+  "world": "isolated",
   "readOnly": false,
   "example": "chrome-use site bilibili-creator/video-publish --video ./clip.mp4 --until-done --title \"Hello\" --description @desc.txt --tags \"Claude Code,开源\" --category 科技数码 --declaration ai --draft true"
 }
@@ -68,7 +69,7 @@ async function(args) {
   const waitFor = async (fn, ms, step) => {
     const until = Date.now() + Math.max(0, Math.min(ms, left()))
     for (;;) {
-      const v = fn()
+      const v = await fn()
       if (v) return v
       if (Date.now() >= until) return null
       await sleep(step || 80)
@@ -112,7 +113,32 @@ async function(args) {
   // Read-only peek at the Vue 2 component the form renders from, for state the
   // DOM does not show (e.g. whether the 自制 box is ticked). Never written to.
   const vm = (el) => { for (let e = el; e; e = e.parentElement) if (e.__vue__) return e.__vue__; return null }
-  const store = () => { const v = vm(one('.submit-container') || D.querySelector('#video-up-app')); return v && v.$store ? v.$store.state : null }
+  // chrome-use 1.5.259+ runs this adapter in an isolated world (@meta world),
+  // where the page's Vue instances are out of sight: the few store fields it
+  // reads come through args.page as a snapshot, refreshed at the points that
+  // need them. Older chrome-use runs it in the page and reads them directly.
+  const PAGE = args.page || null
+  let snap = null
+  const peek = function (formSel, statementSel) {
+    const vmOf = (el) => { for (let e = el; e; e = e.parentElement) if (e.__vue__) return e.__vue__; return null }
+    const v = vmOf(document.querySelector(formSel))
+    const st = v && v.$store ? v.$store.state : null
+    const cs = vmOf(document.querySelector(statementSel))
+    const c = st && st.captcha
+    return {
+      captcha: !!(c && (c === true || c.show || c.visible)),
+      completeBvid: (st && st.completeBvid) || null,
+      isAuthChecked: cs && typeof cs.isAuthChecked === 'boolean' ? cs.isAuthChecked : null,
+    }
+  }
+  const refresh = async () => {
+    if (!PAGE) return
+    try { snap = await PAGE(peek, '.submit-container, #video-up-app', '.statement-main') } catch (e) { snap = null }
+  }
+  const store = () => {
+    if (PAGE) return snap ? { captcha: snap.captcha, completeBvid: snap.completeBvid } : null
+    const v = vm(one('.submit-container') || D.querySelector('#video-up-app')); return v && v.$store ? v.$store.state : null
+  }
 
   const captcha = () => {
     const s = store()
@@ -179,6 +205,7 @@ async function(args) {
     const links = box ? all('a', box).map((a) => a.getAttribute('href') || '') : []
     return { bvid: bvid || bvidFrom(links.join(' ')) || bvidFrom(text(box)), text: box ? text(box).slice(0, 200) : '' }
   }
+  await refresh()
   const done0 = successState()
   if (done0) {
     return {
@@ -344,6 +371,7 @@ async function(args) {
 
   const authEl = statementBox.querySelector('.auth-content')
   const authChecked = () => {
+    if (PAGE && snap && typeof snap.isAuthChecked === 'boolean') return snap.isAuthChecked
     if (csVm && typeof csVm.isAuthChecked === 'boolean') return csVm.isAuthChecked
     return !!(authEl && (/checked|active|selected/.test(authEl.className) || authEl.querySelector('[class*="checked"], [class*="tick"], [class*="icon-duihao"]')))
   }
@@ -351,10 +379,12 @@ async function(args) {
   if (typeKey === 'self') {
     if (!authEl) warnings.push('No 内容为自制 option on the form; 自制 was not declared')
     else {
+      await refresh()
       if (!authChecked()) {
         await click(authEl)
-        await waitFor(authChecked, 800)
+        await waitFor(async () => { await refresh(); return authChecked() }, 800)
       }
+      await refresh()
       selfMade = authChecked()
       if (!selfMade) warnings.push('Could not tick 内容为自制：未经作者允许，禁止转载')
     }
@@ -645,7 +675,8 @@ async function(args) {
   if (uiFallbacks.length) base.ui_fallbacks = uiFallbacks
   if (!draft) markPublishClick()
   await click(button)
-  const outcome = await waitFor(() => {
+  const outcome = await waitFor(async () => {
+    await refresh()
     const s = successState()
     if (s) return { success: s }
     if (captcha()) return { captcha: true }

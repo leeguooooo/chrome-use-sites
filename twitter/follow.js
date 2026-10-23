@@ -23,6 +23,7 @@
     "username": {"required": true, "description": "The handle, with or without @, or the profile URL (https://x.com/<handle>)"}
   },
   "capabilities": ["dom"],
+  "world": "isolated",
   "readOnly": false,
   "example": "chrome-use site twitter/follow leeguooooo --until-done"
 }

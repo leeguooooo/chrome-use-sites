@@ -373,6 +373,27 @@ function fakeUi(p) {
   return { ui, calls }
 }
 
+// chrome-use 1.5.259+ runs this adapter in an isolated world and hands it
+// args.page for page-only state; a stand-in that runs the function here.
+const recordingPage = () => {
+  const calls = []
+  const page = async (fn, ...a) => { calls.push(a); return fn(...a) }
+  return { page, calls }
+}
+
+test('with args.page the Vue store is read as a snapshot through it, with the same result', async () => {
+  const p = formPage()
+  const { page, calls } = recordingPage()
+  const args = { ...ARGS }
+  Object.defineProperty(args, 'page', { value: page, enumerable: false })
+  const r = await load(p)(args)
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.status, 'submitted')
+  assert.equal(r.bvid, 'BV1Ab4y1c7XY')
+  assert.equal(r.self_made, true)
+  assert.ok(calls.length >= 2, 'the store was read through args.page')
+})
+
 test('with args.ui every click and keystroke goes through it, with the same result', async () => {
   const p = formPage()
   // An old 简介 to replace.

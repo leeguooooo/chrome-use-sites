@@ -16,6 +16,7 @@
     "video_url": {"required": false, "description": "Upload page only: fetch this https URL in the page and hand it to the upload input. The host must send CORS headers; GitHub release assets do not. Run again without it once the page is on /content/post/video"}
   },
   "capabilities": ["dom"],
+  "world": "isolated",
   "readOnly": false,
   "example": "chrome-use site douyin-creator/video-publish --video ./clip.mp4 --title \"Hello\" --description @desc.txt --topics \"AI编程,ClaudeCode\" --declaration ai --visibility private --draft true --until-done"
 }
@@ -43,6 +44,10 @@ async function(args) {
   // ui call that fails, get the synthetic events below; ui_fallbacks in the
   // result says when that happened.
   const UI = args.ui || null
+  // chrome-use 1.5.259+ runs this adapter in an isolated world (@meta world),
+  // where the page sees none of its DOM reads; page-only state (React fibers)
+  // comes through args.page. Older chrome-use runs it in the page itself.
+  const PAGE = args.page || null
   const uiFallbacks = []
   const pause = (lo, hi) => sleep(lo + Math.floor(Math.random() * (hi - lo + 1)))
 
@@ -63,7 +68,7 @@ async function(args) {
   const waitFor = async (fn, ms, step) => {
     const until = Date.now() + Math.max(0, Math.min(ms, left()))
     for (;;) {
-      const v = fn()
+      const v = await fn()
       if (v) return v
       if (Date.now() >= until) return null
       await sleep(step || 80)
@@ -248,8 +253,25 @@ async function(args) {
     }
     return null
   }
-  const upload = () => {
-    const st = uploaderState()
+  // The fiber walk, run in the page's own world (fibers are page JS).
+  const readUploader = function () {
+    const seen = new Set()
+    const els = document.querySelectorAll('body *')
+    for (let i = 0; i < els.length && i < 4000; i++) {
+      const el = els[i]
+      const key = Object.keys(el).find((k) => k.indexOf('__reactFiber$') === 0)
+      if (!key) continue
+      for (let f = el[key]; f && !seen.has(f); f = f.return) {
+        seen.add(f)
+        const u = f.memoizedProps && f.memoizedProps.uploader
+        if (u && u.state && typeof u.state.uploadStatus === 'number') return { uploadStatus: u.state.uploadStatus, uploadPercent: u.state.uploadPercent }
+      }
+    }
+    return null
+  }
+  const upload = async () => {
+    let st = null
+    if (PAGE) { try { st = await PAGE(readUploader) } catch (e) { st = null } } else st = uploaderState()
     if (st) {
       const code = st.uploadStatus
       return {
@@ -267,9 +289,9 @@ async function(args) {
     if (/重新上传/.test(t)) return { state: 'done', percent: 100, source: 'dom' }
     return { state: 'unknown', percent: null, source: 'dom' }
   }
-  let up = upload()
+  let up = await upload()
   if (up.state === 'uploading' || up.state === 'unknown') {
-    up = (await waitFor(() => { const u = upload(); return u.state === 'done' || u.state === 'failed' ? u : null }, 2000, 200)) || upload()
+    up = (await waitFor(async () => { const u = await upload(); return u.state === 'done' || u.state === 'failed' ? u : null }, 2000, 300)) || await upload()
   }
   if (up.state === 'failed') return { error: 'The video upload failed', hint: 'Click 重新上传 on the page (or upload again), then re-run.' }
   if (up.state !== 'done') {

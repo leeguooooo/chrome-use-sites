@@ -20,6 +20,7 @@
     "wait_checks": {"required": false, "description": "true (default): do not publish until the upload, processing and copyright checks are done. false publishes as soon as the upload is complete"}
   },
   "capabilities": ["dom"],
+  "world": "isolated",
   "readOnly": false,
   "example": "chrome-use site youtube-studio/video-upload --video ./clip.mp4 --until-done --title \"Hello\" --description @desc.txt --visibility private --made_for_kids false --ai_altered no --category 科学和技术 --tags \"a,b\" --language zh-Hans"
 }

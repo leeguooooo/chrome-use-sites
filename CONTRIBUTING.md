@@ -25,7 +25,10 @@ pull request; a PR that fails it is not merged.
    anything the page can see can get it throttled or banned. A write adapter's
    clicks, typing, key presses and scrolling go through `args.ui` (real input
    events from chrome-use); its own `el.click()`, `dispatchEvent` and
-   `execCommand` stay only as the fallback for older chrome-use. No named
+   `execCommand` stay only as the fallback for older chrome-use. A write
+   adapter that drives the page declares `"world": "isolated"` and reaches
+   page-only JS (React fibers, app stores, the page's own signed fetch) through
+   `args.page(fn, ...args)`. No named
    globals on `window`, no patching page objects or prototypes (such as
    `XMLHttpRequest.prototype`), no DOM nodes left in the page, and fixed waits
    get jitter. `stealth.test.js` checks the first two; reviewers check the rest

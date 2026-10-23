@@ -27,6 +27,20 @@ test('every write adapter that drives the page does it through args.ui', () => {
   assert.deepEqual(offenders, [], 'use args.ui for clicks and typing, keep synthetic events only as the fallback (AGENTS.md, Stealth first)')
 })
 
+// Stays in the main world until it can be checked live: its requests may
+// depend on headers chatgpt.com's own fetch adds, and AGENTS.md forbids live
+// ChatGPT checks.
+const MAIN_WORLD_OK = new Set(['chatgpt/open-project.js'])
+
+test('every write adapter that drives the page runs in the isolated world', () => {
+  const offenders = adapters.filter((file) => {
+    if (MAIN_WORLD_OK.has(file)) return false
+    const src = fs.readFileSync(new URL(file, root), 'utf8')
+    return /"readOnly":\s*false/.test(src) && /args\.ui/.test(src) && !/"world":\s*"isolated"/.test(src)
+  })
+  assert.deepEqual(offenders, [], 'declare "world": "isolated" in @meta and reach page JS through args.page (AGENTS.md, Stealth first)')
+})
+
 test('no adapter leaves a named global on window', () => {
   const offenders = adapters.filter((file) => {
     const src = fs.readFileSync(new URL(file, root), 'utf8')

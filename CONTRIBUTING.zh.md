@@ -18,6 +18,8 @@
 6. **隐身优先。** adapter 跑在用户真实登录的账号上，网页能看到的痕迹都可能害账号被限流或封禁。
    写操作 adapter 的点击、输入、按键、滚动一律走 `args.ui`（chrome-use 发真实输入事件）；
    自己发的 `el.click()`、`dispatchEvent`、`execCommand` 只能留作旧版 chrome-use 的回退。
+   操作页面的写操作 adapter 要声明 `"world": "isolated"`，需要页面 JS 的地方（React fiber、
+   应用状态、页面自己带签名的 fetch）通过 `args.page(fn, ...args)` 获取。
    不许在 `window` 上挂具名全局变量，不许改写页面的原型或对象（比如 `XMLHttpRequest.prototype`），
    不许在页面里留下 DOM 节点；固定的等待时间要带随机抖动。`stealth.test.js` 检查前两条，
    合并者审 PR 时检查其余几条。

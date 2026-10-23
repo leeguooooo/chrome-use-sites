@@ -5,6 +5,22 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-10-23
+
+### Changed (stealth)
+- `douyin-creator/video-publish`, `douyin/delete`, `bilibili-creator/video-publish`,
+  `youtube-studio/video-upload`, `twitter/delete`, `twitter/like`,
+  `twitter/follow`: declare `"world": "isolated"`, so chrome-use 1.5.259+ runs
+  them in the tab's isolated world, where the page sees none of their DOM
+  reads. Page-only state goes through `args.page`: Douyin's React uploader
+  state and its signed `/janus` work_list fetch, Bilibili's Vue store fields
+  (as a snapshot refreshed when needed). YouTube's `__cu*` markers on page
+  elements are no longer visible to the page. Older chrome-use runs them in the
+  page as before.
+- `stealth.test.js`: a write adapter that uses `args.ui` must declare
+  `"world": "isolated"` (chatgpt/open-project excepted until it can be checked
+  live).
+
 ## 2026-10-22
 
 ### Changed (stealth)
