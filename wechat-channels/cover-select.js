@@ -24,6 +24,7 @@ async function(args) {
   if (!wrap) return { error: 'The WeChat Channels cover widget was not found; prepare the video form first' }
   const mode = String(args['cover-mode'] || (args.cover ? 'upload' : 'review'))
   if (!['upload', 'confirm', 'keep'].includes(mode)) return { error: 'This captured editor supports upload, confirm or keep, not AI/frame selection', status: 'cover_mode_unavailable' }
+  if (args.cover && mode !== 'upload') return { error: '--cover requires upload mode; confirm/keep cannot silently ignore a supplied file', status: 'cover_mode_conflict' }
   const visible = node => {
     if (!node) return false
     for (let e = node; e; e = e.parentElement) {

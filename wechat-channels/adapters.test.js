@@ -68,3 +68,9 @@ test('older hosts are refused before opening the editor or sending image bytes',
 test('a create URL carrying an existing-work query is refused',async()=>{
  const f=setup();f.p.window.location.search='?objectId=fixture';const r=await f.run({});assert.match(r.error,/existing works/);assert.deepEqual(f.clicks,[])
 })
+
+test('confirm and keep refuse a supplied file instead of ignoring it',async()=>{
+ for (const mode of ['confirm','keep']) {
+  const f=setup(),r=await f.run({'cover-mode':mode});assert.equal(r.status,'cover_mode_conflict');assert.deepEqual(f.clicks,[]);assert.deepEqual(f.uploads,[])
+ }
+})
