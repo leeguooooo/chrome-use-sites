@@ -7,6 +7,7 @@
   "domain": "creator.douyin.com",
   "args": {
     "video": {"required": false, "type": "file", "input": "input[type=file]", "description": "Local video file to upload (needs chrome-use 1.5.149+). The adapter opens the upload page and hands the file to it; use with --until-done, since Douyin navigates to the post page once the upload starts"},
+    "cover-mode": {"required": false, "description": "review (default) stops before public publish and reports both cover slots; keep explicitly accepts the currently displayed landscape and portrait covers. Drafts remain available for cover editing"},
     "title": {"required": false, "description": "作品标题, at most 30 characters. Required unless --video_url is given"},
     "description": {"required": false, "description": "作品简介, at most 1000 characters. Newlines start new lines"},
     "topics": {"required": false, "description": "Comma-separated topic names without #, e.g. \"AI编程,ClaudeCode\". Only topics Douyin already has (exact name, then case-insensitive) are added; the rest come back in skipped_topics"},
@@ -553,6 +554,20 @@ async function(args) {
     }
     const detecting = assistant.querySelector('[class*="detectingStatus"]')
     if (detecting && /检测中/.test(text(detecting))) warnings.push('发文助手 still checking: ' + text(detecting))
+  }
+
+  // Both ratios need review. Do not turn the platform's implicit frame into
+  // an agent-approved cover, or claim an unobserved upload/crop succeeded.
+  const coverMode = String(args['cover-mode'] || 'review').trim()
+  if (!['review', 'keep'].includes(coverMode)) return { error: 'Unsupported cover-mode: ' + coverMode, hint: 'Review both landscape 4:3 and portrait 3:4 covers in the editor, then use --cover-mode keep. Automatic cover upload/AI/frame selection is not verified on this editor.' }
+  if (!draft && coverMode !== 'keep') {
+    const slots = all('[class*="coverControl"]').map(node => ({
+      label: text(node.querySelector('[class*="cover-tip"]')),
+      image: (node.querySelector('img') || { getAttribute: () => null }).getAttribute('src'),
+    }))
+    return { ok: false, status: 'cover_selection_required', cover_slots: slots, done,
+      warnings: [...warnings, 'Landscape 4:3 and portrait 3:4 covers must both be reviewed; an implicit first frame may be black.'],
+      hint: 'Choose both covers in the platform editor, inspect them, then rerun with --cover-mode keep. Or save a private draft with --draft true. Nothing was published.' }
   }
 
   // ---- publish / save draft -------------------------------------------------

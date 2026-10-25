@@ -84,3 +84,17 @@ chrome-use site bilibili-creator/video-publish --title "…" --description "$(ca
 `node --test bilibili-creator/`
 
 改动记录见 [CHANGELOG](../CHANGELOG.md)。
+
+### 选择封面
+
+发布前需要明确选择封面。默认返回 `status: "cover_selection_required"` 和
+`cover_candidates`，不会提交。`--cover-mode ai` 读取平台已有的推荐候选，
+看过截图后再用从 1 开始的 `--cover-index` 选定；不会生成付费 AI 图片，也不会
+静默选第一张。`--cover-mode keep` 接受你已在编辑器里核对过的封面，空封面仍会拒绝。
+本适配器暂不支持上传封面、按任意时间截帧或修改已发布作品的封面。
+
+```sh
+chrome-use site bilibili-creator/video-publish --title "Hello" --tags a
+chrome-use screenshot --selector .cover-ai
+chrome-use site bilibili-creator/video-publish --title "Hello" --tags a --cover-mode ai --cover-index 2
+```

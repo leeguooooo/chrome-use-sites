@@ -82,3 +82,13 @@ How `video-publish` works:
 `node --test douyin-creator/`
 
 See [CHANGELOG](../CHANGELOG.md) for changes.
+
+### Cover review before public publishing
+
+`video-publish` defaults to `--cover-mode review`: it returns
+`cover_selection_required` and both cover slots before clicking Publish.
+Check landscape 4:3 and portrait 3:4 in the platform editor, then explicitly
+pass `--cover-mode keep`. Draft saves (`--draft true`) remain available for
+later cover editing. No default first frame is silently approved. Automatic
+cover upload, AI selection, arbitrary frame selection and existing-work cover
+updates still need verified editor fixtures and are explicitly unsupported.

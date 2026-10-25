@@ -7,6 +7,8 @@
   "domain": "studio.youtube.com",
   "args": {
     "video": {"required": false, "type": "file", "input": "ytcp-uploads-dialog input[type=file]", "description": "Local video file to upload (needs chrome-use 1.5.149+). The adapter opens the channel's upload dialog and hands the file to it; use with --until-done so the run waits for the upload, processing and checks"},
+    "cover": {"required": false, "type": "file", "input": "ytcp-thumbnail-uploader input[type=file]", "description": "Local JPG/PNG thumbnail. The adapter attaches it to the image-only input and checks the visible custom-thumbnail preview before leaving Details"},
+    "cover-mode": {"required": false, "description": "review (default) stops a public/unlisted publish for thumbnail approval; upload uses --cover; keep explicitly accepts the thumbnail currently shown. Private saves remain possible for later editing"},
     "title": {"required": false, "description": "Video title, at most 100 characters, no < or >. Omit to keep what Studio has (the file name on a fresh upload)"},
     "description": {"required": false, "description": "Description, at most 5000 characters, no < or >. Newlines are kept"},
     "visibility": {"required": false, "description": "private (default) | unlisted | public"},
@@ -578,6 +580,45 @@ async function(args) {
   } else {
     done.push('details (verified earlier)')
     for (const w of dialog.__cuWarnings || []) warnings.push(w)
+  }
+
+  // A file acknowledgement alone is not a saved thumbnail. Observe Studio's
+  // custom preview before leaving Details; uncertain crop/upload state stops here.
+  const coverMode = String(args['cover-mode'] || (args.cover ? 'upload' : 'review')).trim()
+  if (!['review', 'upload', 'keep'].includes(coverMode)) return { error: 'Unsupported cover-mode: ' + coverMode, hint: 'Use --cover <image> for a custom thumbnail, or review the platform thumbnail and explicitly pass --cover-mode keep.' }
+  if (args.cover && coverMode !== 'upload') return { error: '--cover conflicts with --cover-mode ' + coverMode + '; use upload to apply the file' }
+  if (coverMode === 'upload') {
+    const file = args.cover
+    if (!file || typeof file.setOn !== 'function') return { error: '--cover-mode upload requires a --cover local image and chrome-use file-argument support' }
+    if (!/\.(png|jpe?g)$/i.test(String(file.name || ''))) return { error: '--cover must be a JPG or PNG image; nothing was attached' }
+    const inputs = all('ytcp-thumbnail-uploader input[type=file]', dialog)
+    if (inputs.length > 1) return { error: 'Multiple thumbnail inputs are present; select the intended thumbnail slot in Studio before uploading' }
+    const input = inputs[0]
+    if (!input) return { ok: false, status: 'cover_confirmation_required', url, hint: 'Return to the Details step to upload the thumbnail; nothing was published.' }
+    const accepted = String(input.getAttribute('accept') || '')
+    if (!/image\//.test(accepted) || /video\//.test(accepted)) return { error: 'The thumbnail input is not confirmed image-only; nothing was attached' }
+    const preview = () => {
+      const img = dialog.querySelector('ytcp-video-custom-still-editor .preview img')
+      return img && img.getAttribute('src') && shown(img.closest('.preview')) ? img.getAttribute('src') : null
+    }
+    const current = input.files && input.files[0]
+    const alreadyAttached = current && current.name === file.name && current.size === file.size
+    const before = preview()
+    if (!alreadyAttached) {
+      try { await file.setOn(input) } catch (error) { return { error: 'Could not attach thumbnail: ' + String(error && error.message || error) } }
+      if (!(await waitFor(() => { const now = preview(); return now && now !== before }, Math.min(4000, left() - 1000), 100))) {
+        return { ok: false, status: 'cover_confirmation_required', url, hint: 'The custom thumbnail preview did not confirm the uploaded image. Finish any upload/crop prompt in Studio and inspect before retrying. Nothing was published.' }
+      }
+    } else if (!preview()) {
+      return { ok: false, status: 'cover_confirmation_required', url, hint: 'The file is attached but its preview is not confirmed. Inspect Studio before retrying; nothing was published.' }
+    }
+    done.push('cover')
+  } else if (coverMode === 'review' && visKey !== 'private') {
+    return { ok: false, status: 'cover_selection_required', url, done,
+      warnings: [...warnings, 'Review the thumbnail before public/unlisted publication; the default frame may be black.'],
+      hint: 'Upload --cover <image>, or inspect/select the thumbnail in Studio and explicitly pass --cover-mode keep. Use --visibility private to save for later editing. Nothing was published.' }
+  } else if (coverMode === 'review') {
+    warnings.push('Thumbnail was not reviewed; this video is saved privately. Review it before changing visibility.')
   }
 
   // ---- wait for the upload / checks --------------------------------------------

@@ -82,3 +82,11 @@ chrome-use site douyin-creator/works --cursor 1661351824000      # 出错后从�
 `node --test douyin-creator/`
 
 改动记录见 [CHANGELOG](../CHANGELOG.md)。
+
+### 发布前核对双封面
+
+`video-publish` 默认采用 `--cover-mode review`，点击发布前返回
+`cover_selection_required` 和两个封面槽。先在平台编辑器里核对横版 4:3、
+竖版 3:4，再明确传入 `--cover-mode keep`。仍可用 `--draft true` 保存草稿后改封面。
+适配器不会静默批准默认首帧。自动上传、AI 选择、任意截帧及修改已发布作品的封面
+还缺少已验证的编辑器样本，暂不支持，调用时会明确拒绝。
