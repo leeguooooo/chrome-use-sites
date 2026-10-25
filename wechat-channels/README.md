@@ -31,3 +31,5 @@ one complete upload/crop/preview flow on an owned test create form. The visible
 preview was verified at 720×960. The QA video was removed and the owned test tab
 was closed without saving a draft or publishing. This does not validate every
 account variant or update of a published work.
+
+Recorded [QA acceptance metadata](fixtures/qa-acceptance.json) includes a cropped fixture preview and the separate complete-adapter result.
