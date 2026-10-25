@@ -7,6 +7,16 @@ file says what changed and when.
 
 ## 2026-10-26
 
+### Added
+- `wechat-channels/cover-select`: upload a JPG/PNG cover to a new video form,
+  confirm inline or nested cropping, and verify the changed 3:4 preview without
+  publishing. Requires the relay-safe element-upload capability for upload mode;
+  keep/explicit confirm are available for already prepared previews.
+
+### Fixed
+- `youtube-studio/video-upload`: use the unique thumbnail selector on released
+  CLIs that do not advertise relay-safe element delivery, without adding markers.
+
 ### Changed
 - `bilibili-creator/video-publish`: stop for explicit cover review; return existing
   recommendation candidates and require `--cover-index` before AI-recommendation

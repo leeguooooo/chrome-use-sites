@@ -111,3 +111,5 @@ returns `cover_confirmation_required` and cannot publish. Private saves remain
 available, with a warning to review the thumbnail before changing visibility.
 Automatic platform AI/frame selection and existing-work thumbnail updates are
 not implemented. This behavior is fixture-tested; no live channel was modified.
+
+Released CLIs without `elementRelayUpload` use the known unique thumbnail selector, preserving ordinary relay upload compatibility without DOM markers.

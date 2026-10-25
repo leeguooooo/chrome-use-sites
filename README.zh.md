@@ -45,6 +45,7 @@ adapter 在你已登录的标签页里运行，所以**先登录目标网站**�
 | [`bilibili/`](bilibili/) | www.bilibili.com · member.bilibili.com | `user-videos`、`creator-stats` | 读取 |
 | [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish` | 发布 |
 | [`youtube-studio/`](youtube-studio/) | studio.youtube.com | `channel`、`video-upload` | 读取 + 发布 |
+| [`wechat-channels/`](wechat-channels/) | channels.weixin.qq.com | `cover-select` | 新草稿封面选择 |
 | [`juejin/`](juejin/) · [`csdn/`](csdn/) · [`segmentfault/`](segmentfault/) · [`zhihu/`](zhihu/) | 国内技术社区 | `article-publish` | 发布 |
 | [`chatgpt/`](chatgpt/) | chatgpt.com | `me`、`conversations`、`conversation`、`projects`、`models`、`images`、`open-project` | 读取（+ 打开项目） |
 | [`appstoreconnect/`](appstoreconnect/) | appstoreconnect.apple.com | `apps`、`app-create`、`builds` | 读取 + 创建 |

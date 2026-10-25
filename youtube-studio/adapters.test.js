@@ -639,7 +639,9 @@ test('public publishing stops for thumbnail review by default', async () => {
 test('an image file is attached only to the thumbnail input and its preview is confirmed', async () => {
   const p = studio()
   const attached = []
-  const file = { name: 'cover.png', size: 100, setOn: async input => {
+  const file = { name: 'cover.png', size: 100, setOn: async target => {
+    const input = typeof target === 'string' ? p.document.querySelector(target) : target
+    assert.equal(typeof target, 'string', 'released hosts use the known selector instead of broken element delivery')
     attached.push(input)
     const image = p.dialog.querySelector('ytcp-video-custom-still-editor .preview img')
     image.setAttribute('src', 'blob:verified-cover')
@@ -674,4 +676,11 @@ test('a supplied cover cannot be silently ignored by keep mode', async () => {
   const r = await run(p, { ...FULL, cover: { name: 'cover.png', setOn: async () => {} } })
   assert.match(r.error, /conflicts with/)
   assert.equal(p.log.published, false)
+})
+
+
+test('hosts advertising element relay delivery can use the private input handle', async () => {
+ const p=studio();let passed
+ const cover={name:'cover.png',size:100,elementRelayUpload:true,setOn:async target=>{passed=target;const image=p.dialog.querySelector('ytcp-video-custom-still-editor .preview img');image.setAttribute('src','blob:modern-cover');image.closest('.preview').removeAttribute('hidden')}}
+ const r=await run(p,{...FULL,'cover-mode':'upload',cover});assert.equal(r.ok,true,JSON.stringify(r));assert.equal(typeof passed,'object');assert.equal(passed.getAttribute('type'),'file');assert.equal(passed.getAttribute('accept'),'image/jpeg,image/png')
 })

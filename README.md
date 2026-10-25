@@ -45,6 +45,7 @@ Each pack documents itself in its own folder, in English (`README.md`) and Chine
 | [`bilibili/`](bilibili/) | www.bilibili.com · member.bilibili.com | `user-videos`, `creator-stats` | read |
 | [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish` | publish |
 | [`youtube-studio/`](youtube-studio/) | studio.youtube.com | `channel`, `video-upload` | read + publish |
+| [`wechat-channels/`](wechat-channels/) | channels.weixin.qq.com | `cover-select` | new-draft cover selection |
 | [`juejin/`](juejin/) · [`csdn/`](csdn/) · [`segmentfault/`](segmentfault/) · [`zhihu/`](zhihu/) | Chinese dev platforms | `article-publish` | publish |
 | [`chatgpt/`](chatgpt/) | chatgpt.com | `me`, `conversations`, `conversation`, `projects`, `models`, `images`, `open-project` | read (+ open project) |
 | [`appstoreconnect/`](appstoreconnect/) | appstoreconnect.apple.com | `apps`, `app-create`, `builds` | read + create |
