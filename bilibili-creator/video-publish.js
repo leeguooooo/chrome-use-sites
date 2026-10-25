@@ -6,6 +6,8 @@
   "domain": "member.bilibili.com",
   "args": {
     "video": {"required": false, "type": "file", "input": ".bcc-upload-wrapper input[type=file]", "description": "Local video file to upload (needs chrome-use 1.5.149+). The adapter opens the 投稿 page and hands the file to it; use with --until-done so the run waits for 上传完成"},
+    "cover-mode": {"required": false, "description": "review (default) stops for explicit cover selection; ai with --cover-index chooses a rendered recommendation; keep explicitly accepts the cover already on the form"},
+    "cover-index": {"required": false, "description": "One-based index from the returned cover_candidates; required for --cover-mode ai. No candidate is selected implicitly"},
     "title": {"required": true, "description": "标题, at most 80 characters"},
     "description": {"required": false, "description": "简介, at most 2000 characters. Newlines start new paragraphs"},
     "tags": {"required": true, "description": "Comma-separated 标签, 1 to 10, each at most 20 characters. A tag that matches one of Bilibili's 推荐标签 is clicked there; the rest are typed and entered. Tags already on the form that are not listed are removed"},
@@ -601,18 +603,6 @@ async function(args) {
   }
   done.push('visibility')
 
-  // ---- 封面: keep Bilibili's; if the slot is still empty take its first recommended frame
-  const coverEmpty = () => !!one('.cover-main .cover-empty')
-  let cover = coverEmpty() ? 'empty' : 'set'
-  if (cover === 'empty') {
-    const first = all('.cover-ai .img-item-cover').find(inForm)
-    if (first) {
-      await click(first)
-      if (await waitFor(() => !coverEmpty(), 1000)) cover = 'recommended_frame'
-    }
-    if (coverEmpty()) warnings.push('封面 is still empty; Bilibili may refuse the submit until one is chosen')
-  }
-
   // ---- wait for the upload ----------------------------------------------------------
   let up = upload()
   if (up.state !== 'done') {
@@ -629,6 +619,26 @@ async function(args) {
       hint: 'The form is filled but the file is still uploading. Run the same command again in a little while; it submits once 上传完成.',
       ...(uiFallbacks.length ? { ui_fallbacks: uiFallbacks } : {}),
     }
+  }
+
+  // Cover choice is explicit: neither this adapter nor an AI-review request
+  // silently picks the first frame. A listing reads only existing thumbnails.
+  const coverMode = String(args['cover-mode'] || 'review').trim()
+  if (!['review', 'ai', 'keep'].includes(coverMode)) return { error: 'Unsupported cover-mode: ' + coverMode, hint: 'Use review, ai with --cover-index, or keep after checking the current cover. Upload/frame/update need a separately verified cover editor.' }
+  const recommendations = all('.cover-ai .img-item-cover').filter(inForm)
+  const coverCandidates = recommendations.map((node, index) => ({ index: index + 1, url: (node.querySelector('img') || node).getAttribute('src') || null }))
+  const coverEmpty = () => !!one('.cover-main .cover-empty')
+  let cover = coverEmpty() ? 'empty' : 'set'
+  if (coverMode === 'ai' && args['cover-index'] != null) {
+    const index = Number(args['cover-index'])
+    if (!Number.isInteger(index) || index < 1 || index > recommendations.length) return { error: 'cover-index is outside the returned cover_candidates', cover_candidates: coverCandidates }
+    await click(recommendations[index - 1])
+    if (!(await waitFor(() => !coverEmpty(), 1000))) return { error: 'The selected cover could not be confirmed; nothing was submitted', cover_candidates: coverCandidates }
+    cover = 'recommended_frame'
+  } else if (coverMode !== 'keep' || coverEmpty()) {
+    return { ok: false, status: 'cover_selection_required', done, cover, cover_candidates: coverCandidates,
+      warnings: [...warnings, 'Review the cover before submission; the first frame may be black.'],
+      hint: 'Inspect the candidates with screenshot --selector .cover-ai, then rerun with --cover-mode ai --cover-index <index>. Or choose a cover in the editor and explicitly pass --cover-mode keep. Nothing was submitted.' }
   }
 
   // ---- submit -------------------------------------------------------------------------

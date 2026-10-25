@@ -5,6 +5,20 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-10-26
+
+### Changed
+- `bilibili-creator/video-publish`: stop for explicit cover review; return existing
+  recommendation candidates and require `--cover-index` before AI-recommendation
+  selection. `--cover-mode keep` requires an existing cover.
+- `douyin-creator/video-publish`: stop public publishing until landscape 4:3 and
+  portrait 3:4 covers have been reviewed and explicitly accepted; drafts remain available.
+- `youtube-studio/video-upload`: require thumbnail approval before public/unlisted
+  publishing; support `--cover` image upload with a verified visible custom preview.
+  Unconfirmed upload/crop state stops submission. Private saves remain available.
+- Cover generation, arbitrary frame extraction, updates of existing works and
+  unsupported platform packs remain unimplemented; adapters do not claim success for them.
+
 ## 2026-10-23
 
 ### Fixed

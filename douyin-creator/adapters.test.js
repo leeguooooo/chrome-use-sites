@@ -18,7 +18,8 @@ const UPLOAD_URL = 'https://creator.douyin.com/creator-micro/content/upload'
 
 function load(env, fetchImpl) {
   const fetch = fetchImpl || (async () => { throw new Error('the adapter must not fetch without --video_url') })
-  return new Function('window', 'document', 'fetch', `return (${SRC})`)(env.window, env.document, fetch)
+  const run = new Function('window', 'document', 'fetch', `return (${SRC})`)(env.window, env.document, fetch)
+  return args => run(Object.defineProperties({ 'cover-mode': 'keep' }, Object.getOwnPropertyDescriptors(args)))
 }
 
 const HEAT = {
@@ -573,4 +574,20 @@ test('the adapter drives the page and never calls Douyin APIs itself', () => {
   const fetches = src.match(/\bfetch\(/g) || []
   assert.equal(fetches.length, 1, 'the only fetch is the --video_url download')
   assert.ok(!/XMLHttpRequest|a_bogus|X-Bogus|msToken/i.test(src))
+})
+
+
+test('a public publish stops for explicit review of both cover ratios', async () => {
+  const p = postPage()
+  const r = await load(p)({ title: 'T', 'cover-mode': '' })
+  assert.equal(r.status, 'cover_selection_required')
+  assert.equal(r.cover_slots.length, 2)
+  assert.ok(!p.log.clicks.includes('publish'))
+})
+
+test('unverified automatic cover modes refuse rather than publish', async () => {
+  const p = postPage()
+  const r = await load(p)({ title: 'T', 'cover-mode': 'ai' })
+  assert.match(r.error, /Unsupported cover-mode/)
+  assert.ok(!p.log.clicks.includes('publish'))
 })

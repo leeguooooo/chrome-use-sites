@@ -99,3 +99,15 @@ Calls Studio's own `creator/get_creator_channels` and `creator/list_creator_vide
 `node --test youtube-studio/`
 
 See [CHANGELOG](../CHANGELOG.md) for changes.
+
+### Thumbnail approval and upload
+
+`video-upload` defaults to `--cover-mode review`: public/unlisted publishing
+stops with `cover_selection_required` until you explicitly accept a checked
+thumbnail with `--cover-mode keep`, or upload `--cover ./cover.png` with
+`--cover-mode upload`. The upload targets only the image input and must produce
+a visible changed custom-thumbnail preview; an acknowledged file transfer alone
+returns `cover_confirmation_required` and cannot publish. Private saves remain
+available, with a warning to review the thumbnail before changing visibility.
+Automatic platform AI/frame selection and existing-work thumbnail updates are
+not implemented. This behavior is fixture-tested; no live channel was modified.

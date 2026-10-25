@@ -99,3 +99,14 @@ chrome-use site youtube-studio/channel --limit 0   # 只要总数
 `node --test youtube-studio/`
 
 改动记录见 [CHANGELOG](../CHANGELOG.md)。
+
+### 核对和上传缩略图
+
+`video-upload` 默认采用 `--cover-mode review`：公开或不公开列出的发布会停在
+`cover_selection_required`。核对平台缩略图后明确传入 `--cover-mode keep`，
+或用 `--cover ./cover.png --cover-mode upload` 上传自定义图片。
+上传仅定位图片输入框，必须看到已更换且可见的自定义缩略图预览；只确认文件送达
+还不算设置成功，会返回 `cover_confirmation_required` 并停止发布。
+仍可保存为私密视频，但会提醒在更改可见性前核对缩略图。
+平台 AI／指定帧选择及修改已发布作品缩略图暂未实现。本改动经过离线样本测试，
+没有修改真实频道。

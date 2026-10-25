@@ -84,3 +84,20 @@ The live check so far was one real publish (BV1fqad6TET7): filled once with `--s
 `node --test bilibili-creator/`
 
 See [CHANGELOG](../CHANGELOG.md) for changes.
+
+### Cover selection
+
+Publishing now requires an explicit cover decision. The default returns
+`status: "cover_selection_required"` with `cover_candidates` and submits nothing.
+`--cover-mode ai` lists existing platform recommendations; add a one-based
+`--cover-index` after visually reviewing them to select one. It never generates
+paid AI images or silently chooses the first candidate. `--cover-mode keep`
+accepts a cover you already checked in the editor; an empty slot is still refused.
+Upload, arbitrary video-frame extraction and editing an existing work's cover
+are not supported by this adapter yet. Do not infer them from the mode name.
+
+```sh
+chrome-use site bilibili-creator/video-publish --title "Hello" --tags a
+chrome-use screenshot --selector .cover-ai
+chrome-use site bilibili-creator/video-publish --title "Hello" --tags a --cover-mode ai --cover-index 2
+```

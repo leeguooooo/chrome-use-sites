@@ -205,7 +205,7 @@ function studio({ step = 'DETAILS', progress = 'checked', st: preset = {}, stuck
   return { window, document, body, dialog, st, log, setProgress }
 }
 
-const run = (env, args) => load(env)(args)
+const run = (env, args) => load(env)(Object.defineProperties({ 'cover-mode': 'keep' }, Object.getOwnPropertyDescriptors(args)))
 const FULL = {
   title: 'ocs：让 Claude Code 和 Codex 互相叫醒',
   description: '第一行\n\nGitHub: https://github.com/example/repo\n#ClaudeCode #Codex',
@@ -626,4 +626,52 @@ test('install.sh ships every youtube-studio adapter in this directory', () => {
   assert.deepEqual(missing, [], 'these adapters exist but install.sh will not fetch them: ' + missing.join(', '))
   const listed = [...install.matchAll(/youtube-studio\/([\w.-]+\.js)/g)].map((m) => m[1])
   assert.deepEqual(listed.filter((f) => !onDisk.includes(f)), [], 'install.sh lists files that do not exist')
+})
+
+
+test('public publishing stops for thumbnail review by default', async () => {
+  const p = studio()
+  const r = await run(p, { ...FULL, visibility: 'public', 'cover-mode': '' })
+  assert.equal(r.status, 'cover_selection_required')
+  assert.equal(p.log.published, false)
+})
+
+test('an image file is attached only to the thumbnail input and its preview is confirmed', async () => {
+  const p = studio()
+  const attached = []
+  const file = { name: 'cover.png', size: 100, setOn: async input => {
+    attached.push(input)
+    const image = p.dialog.querySelector('ytcp-video-custom-still-editor .preview img')
+    image.setAttribute('src', 'blob:verified-cover')
+    image.closest('.preview').removeAttribute('hidden')
+  } }
+  const r = await run(p, { ...FULL, 'cover-mode': 'upload', cover: file })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(attached.length, 1)
+  assert.equal(attached[0].getAttribute('accept'), 'image/jpeg,image/png')
+  assert.ok(r.done.includes('cover'))
+})
+
+test('attachment without a confirmed thumbnail preview does not publish', async () => {
+  const p = studio()
+  const r = await run(p, { ...FULL, 'cover-mode': 'upload', cover: { name: 'cover.png', size: 100, setOn: async () => {} } })
+  assert.equal(r.status, 'cover_confirmation_required')
+  assert.equal(p.log.published, false)
+})
+
+
+test('a video file cannot be sent to the thumbnail input', async () => {
+  const p = studio()
+  let attached = false
+  const r = await run(p, { ...FULL, 'cover-mode': 'upload', cover: { name: 'clip.mp4', setOn: async () => { attached = true } } })
+  assert.match(r.error, /JPG or PNG/)
+  assert.equal(attached, false)
+  assert.equal(p.log.published, false)
+})
+
+test('a supplied cover cannot be silently ignored by keep mode', async () => {
+  const p = studio()
+  const r = await run(p, { ...FULL, cover: { name: 'cover.png', setOn: async () => {} } })
+  assert.match(r.error, /conflicts with/)
+  assert.equal(p.log.published, false)
 })

@@ -20,7 +20,8 @@ const URL_FRAME = 'https://member.bilibili.com/platform/upload/video/frame'
 
 function load(env) {
   const fetch = async () => { throw new Error('the adapter must not fetch') }
-  return new Function('window', 'document', 'fetch', `return (${SRC})`)(env.window, env.document, fetch)
+  const run = new Function('window', 'document', 'fetch', `return (${SRC})`)(env.window, env.document, fetch)
+  return args => run(Object.defineProperties({ 'cover-mode': 'ai', 'cover-index': 1 }, Object.getOwnPropertyDescriptors(args)))
 }
 
 const ARGS = {
@@ -459,7 +460,7 @@ test('a re-run on a filled form changes nothing before submitting', async () => 
   p.body.querySelector('.file-item-content-status').innerHTML = '<div class="file-item-content-status-text"><span class="success">上传完成</span></div>'
   const r2 = await load(p)(ARGS)
   assert.equal(r2.status, 'submitted', JSON.stringify(r2))
-  assert.deepEqual(p.log.clicks.slice(clicks), ['submit'], 'the second run only submits')
+  assert.deepEqual(p.log.clicks.slice(clicks), ['cover', 'submit'], 'the second run applies the explicitly chosen cover before submitting')
   assert.equal(p.state().auth, true, 'the 自制 box was not toggled back off')
   const r3 = await load(p)(ARGS)
   assert.equal(r3.status, 'already_submitted')
@@ -575,4 +576,29 @@ test('the adapter drives the page and never calls Bilibili APIs itself', () => {
   const src = SRC.replace(/\/\/.*$/gm, '')
   assert.ok(!/\bfetch\(|XMLHttpRequest|w_rid|wbi|csrf|bili_jct/i.test(src))
   assert.ok(!/\$store\.(commit|dispatch)|\.\$emit\(/.test(src), 'Vue state is only read, never written')
+})
+
+
+test('cover review returns candidates without choosing or submitting a default frame', async () => {
+  const p = formPage()
+  const r = await load(p)({ ...ARGS, 'cover-mode': '', 'cover-index': undefined })
+  assert.equal(r.status, 'cover_selection_required')
+  assert.ok(r.cover_candidates.length)
+  assert.ok(!p.log.clicks.includes('cover'))
+  assert.ok(!p.log.clicks.includes('publish'))
+})
+
+test('AI cover mode requires an explicit candidate index', async () => {
+  const p = formPage()
+  const r = await load(p)({ ...ARGS, 'cover-mode': 'ai', 'cover-index': undefined })
+  assert.equal(r.status, 'cover_selection_required')
+  assert.ok(!p.log.clicks.includes('cover'))
+})
+
+test('an unavailable cover candidate is refused before any submit', async () => {
+  const p = formPage()
+  const r = await load(p)({ ...ARGS, 'cover-mode': 'ai', 'cover-index': 999 })
+  assert.match(r.error, /cover-index/)
+  assert.ok(!p.log.clicks.includes('cover'))
+  assert.ok(!p.log.clicks.includes('publish'))
 })
