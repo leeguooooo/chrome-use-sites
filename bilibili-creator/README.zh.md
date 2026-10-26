@@ -128,3 +128,18 @@ upload 模式分别传图片。
 `--allow-dark-cover true` 并使用新输出路径，才会接受该提示。这只是像素启发式检查，
 不是封面质量评价。本地截帧不触发平台 AI，也不操作平台时间轴。旧 CLI 没有这项预处理，
 需先升级。
+
+## 平台 AI 候选
+
+`bilibili-creator/cover-ai` 默认只读取候选、真实界面标签和 `candidate_token`，
+不默认选第一张。`--generate true` 明确点一次“AI生成”并等待可观察结果。平台提示
+生成失败时返回 `ai_generation_failed`；留下的系统推荐帧不会被当作 AI 生成成功。
+已有失败状态不自动重试，结果不明时返回 `retryable: false`。
+
+先用 `screenshot --selector .cover-ai` 查看候选，再明确传
+`--cover-index 2 --candidate-token <返回的token>` 选择。token 绑定当前图片来源与
+界面标签，变化后需重新核对。不能在同一个请求中生成后自动按旧下标选择。只有表单
+实际封面与目标图片相符，才返回 `candidate_selected`；投稿前仍需核对两个裁剪比例，
+结果会标记 `requires_crop_review: true`。这个命令不投稿、不存草稿。
+
+实页测试视频触发的 AI 生成返回失败。初次候选选择因 URL 核验未通过而停止；之后只读检查确认第 2 张候选已选中，主封面也变成编码图片。修正后的核验通过样本回归，没有在真实账号整条重跑；生成成功分支同样不能当作实页生成成功的证明。

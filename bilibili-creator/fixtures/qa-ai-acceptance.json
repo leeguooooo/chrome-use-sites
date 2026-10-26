@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-26",
+  "generation": {
+    "requested_once": true,
+    "observed_label": "智能封面生成失败，以下为系统推荐封面",
+    "outcome": "platform_failure",
+    "automatic_retry": false
+  },
+  "initial_adapter_selection": {
+    "index": 2,
+    "outcome": "cover_confirmation_required",
+    "reason": "URL-only verification could not match the encoded preview"
+  },
+  "read_only_recovery": {
+    "selected_index": 2,
+    "unique_selected_indicator": true,
+    "main_encoded_preview_present": true
+  },
+  "limitations": [
+    "Corrected selection verifier tested offline, not rerun end-to-end on the real account.",
+    "Successful AI generation has only synthetic fixture coverage.",
+    "No publication, draft save or existing-work changes.",
+    "Both crop ratios still require review before publishing."
+  ],
+  "cleanup": "owned background test tab closed and absence verified"
+}

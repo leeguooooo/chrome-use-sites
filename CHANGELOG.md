@@ -8,6 +8,9 @@ file says what changed and when.
 ## 2026-10-26
 
 ### Added
+- `bilibili-creator/cover-ai`: explicitly request one platform generation, return
+  rendered candidates for screenshot review, and bind selection to a reviewed
+  token. Platform failure and fallback recommendations remain distinct.
 - Native WeChat, Bilibili, Douyin and YouTube cover adapters opt in to local
   frame covers: explicit timestamp, retained PNG, near-black/uniform review and
   the existing verified image-upload path. Requires a compatible CLI and FFmpeg.

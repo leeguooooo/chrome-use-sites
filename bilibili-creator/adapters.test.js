@@ -40,7 +40,7 @@ const ARGS = {
  *  - the Quill 简介 editor as a paragraph model,
  *  - 可见范围 radios, the recommended cover frames, and 立即投稿 / 存草稿.
  */
-function formPage({ uploading = false, rejectTags = [], onSubmit, noSource = false, coverNoop = false } = {}) {
+function formPage({ uploading = false, rejectTags = [], onSubmit, noSource = false, coverNoop = false, transformedCover = false } = {}) {
   const page = createPage({ html: fixture('upload-form.html'), url: URL_FRAME })
   const { window, document, body } = page
   const log = { clicks: [], typedTags: [] }
@@ -161,6 +161,7 @@ function formPage({ uploading = false, rejectTags = [], onSubmit, noSource = fal
     if (t.closest('.img-item-cover')) {
       if (coverNoop) return
       q('.cover-main .cover-slot').innerHTML = '<img class="cover-img" src="blob:https://member.bilibili.com/cover">'
+      if (transformedCover) { t.closest('.img-item-cover').classList.add('img-item-cover-selected'); q('.cover-main .cover-slot').innerHTML = '<div class="cover-img" style="background:url(data:image/png;base64,synthetic)"></div>' }
       log.clicks.push('cover')
       return
     }
@@ -619,3 +620,5 @@ test('recommendations expose the background image source from the captured edito
   const r = await load(p)({ ...ARGS, 'cover-mode': 'review', 'cover-index': undefined })
   assert.equal(r.cover_candidates[0].url, 'blob:https://member.bilibili.com/cover')
 })
+
+test('a selected recommendation with a changed encoded preview can be verified',async()=>{const p=formPage({transformedCover:true});const r=await load(p)({...ARGS,submit:'false'});assert.equal(r.cover,'recommended_frame',JSON.stringify(r));assert.equal(r.status,'filled')})
