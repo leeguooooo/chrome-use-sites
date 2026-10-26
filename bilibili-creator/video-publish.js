@@ -28,6 +28,9 @@
 
 async function(args) {
   args = args || {}
+  const unsupportedCoverFiles = ['cover', 'cover-portrait', 'cover-landscape', 'cover-video', 'cover-output', 'allow-dark-cover'].filter(k => args[k] != null)
+  if (unsupportedCoverFiles.length) return { error: 'This publisher cannot attach cover files; use bilibili-creator/cover-select first, review the previews, then explicitly keep the selected cover. Unsupported arguments: ' + unsupportedCoverFiles.join(', '), status: 'cover_mode_conflict' }
+
   const W = window
   const D = document
   // Every wait draws on this budget; a run that is short on time stops at a
