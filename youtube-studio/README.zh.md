@@ -112,3 +112,17 @@ chrome-use site youtube-studio/channel --limit 0   # 只要总数
 没有修改真实频道。
 
 没有 `elementRelayUpload` 能力的已发布 CLI 会使用已知且唯一的缩略图选择器，沿用普通 relay 上传路径，不添加 DOM 标记。
+
+## 从本地视频指定帧
+
+兼容的 CLI 安装 FFmpeg 后，原生适配器支持
+`--cover-mode frame:1.5 --cover-video ./clip.mp4 --cover-output ./cover-1.5.png`。
+时间为本地视频中的明确秒数。CLI 截取一张 PNG，保留作核对用的文件，再走现有图片
+上传和预览核验流程。抖音会将同一帧交给两个比例分别裁剪；需要不同横、竖图时仍用
+upload 模式分别传图片。
+
+输出必须是尚不存在的 `.png`，不会覆盖已有文件。没有对应帧、FFmpeg 不可用等情况
+会在浏览器操作前失败。近黑、近纯色画面会停下要求核对；看过图片后，只有明确传
+`--allow-dark-cover true` 并使用新输出路径，才会接受该提示。这只是像素启发式检查，
+不是封面质量评价。本地截帧不触发平台 AI，也不操作平台时间轴。旧 CLI 没有这项预处理，
+需先升级。

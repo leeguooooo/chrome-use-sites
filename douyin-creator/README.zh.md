@@ -108,3 +108,17 @@ chrome-use site douyin-creator/cover-select --cover-portrait ./portrait.png \
 新预览，才返回 `covers_selected`。中途停止会返回 `cover_confirmation_required`
 及编辑器中已准备的比例；表单可能已有部分改动，请先检查再重试。已有编辑器未关闭时会拒绝
 开始，不支持的页面和模式也会在操作前拒绝。
+
+## 从本地视频指定帧
+
+兼容的 CLI 安装 FFmpeg 后，原生适配器支持
+`--cover-mode frame:1.5 --cover-video ./clip.mp4 --cover-output ./cover-1.5.png`。
+时间为本地视频中的明确秒数。CLI 截取一张 PNG，保留作核对用的文件，再走现有图片
+上传和预览核验流程。抖音会将同一帧交给两个比例分别裁剪；需要不同横、竖图时仍用
+upload 模式分别传图片。
+
+输出必须是尚不存在的 `.png`，不会覆盖已有文件。没有对应帧、FFmpeg 不可用等情况
+会在浏览器操作前失败。近黑、近纯色画面会停下要求核对；看过图片后，只有明确传
+`--allow-dark-cover true` 并使用新输出路径，才会接受该提示。这只是像素启发式检查，
+不是封面质量评价。本地截帧不触发平台 AI，也不操作平台时间轴。旧 CLI 没有这项预处理，
+需先升级。

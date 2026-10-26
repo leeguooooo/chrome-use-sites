@@ -5,14 +5,46 @@
   "timeout": 90,
   "domain": "creator.douyin.com",
   "args": {
-    "cover-portrait": {"type": "file", "required": false, "description": "JPG/PNG 3:4 portrait cover"},
-    "cover-landscape": {"type": "file", "required": false, "description": "JPG/PNG 4:3 landscape cover"},
-    "cover-mode": {"required": false, "description": "upload (requires both files), review (default), or keep (explicitly accept both current previews). AI/frame modes are unavailable"}
+    "cover-portrait": {
+      "type": "file",
+      "required": false,
+      "description": "JPG/PNG 3:4 portrait cover"
+    },
+    "cover-landscape": {
+      "type": "file",
+      "required": false,
+      "description": "JPG/PNG 4:3 landscape cover"
+    },
+    "cover-mode": {
+      "required": false,
+      "description": "upload (requires both files), review (default), or keep (explicitly accept both current previews). AI/frame modes are unavailable; frame:<seconds> uses local FFmpeg and requires --cover-video and --cover-output on a compatible CLI"
+    },
+    "cover-video": {
+      "required": false,
+      "type": "file",
+      "description": "Local source video for --cover-mode frame:<seconds>; extracted locally by the CLI, never attached by this argument"
+    },
+    "cover-output": {
+      "required": false,
+      "description": "New PNG path retained for frame review; existing files are never overwritten"
+    },
+    "allow-dark-cover": {
+      "required": false,
+      "description": "true explicitly accepts a reviewed near-black or nearly uniform frame; default false stops before browser interaction"
+    }
   },
-  "capabilities": ["dom"],
+  "capabilities": [
+    "dom"
+  ],
   "world": "isolated",
   "readOnly": false,
-  "example": "chrome-use site douyin-creator/cover-select --cover-portrait ./portrait.png --cover-landscape ./landscape.png --cover-mode upload"
+  "example": "chrome-use site douyin-creator/cover-select --cover-portrait ./portrait.png --cover-landscape ./landscape.png --cover-mode upload",
+  "coverFrame": {
+    "targets": [
+      "cover-portrait",
+      "cover-landscape"
+    ]
+  }
 }
 */
 async function(args) {
@@ -113,7 +145,7 @@ async function(args) {
       return p && l && p.source!==before.portrait?.source && l.source!==before.landscape?.source
     })
     if(!changed) throw new Error('Both changed cover previews were not confirmed after completion')
-    return {ok:true,status:'covers_selected',verified:true,portrait:brief(preview('竖封面')),landscape:brief(preview('横封面')),published:false}
+    return {ok:true,status:'covers_selected',verified:true,frame:args.frameCover,portrait:brief(preview('竖封面')),landscape:brief(preview('横封面')),published:false}
   } catch(error) {
     return {error:'Stopped while '+stage+': '+String(error?.message || error),status:'cover_confirmation_required',prepared,published:false,hint:'The form may already contain an uploaded image or a completed cover. Inspect it before retrying; nothing was published or saved.'}
   }

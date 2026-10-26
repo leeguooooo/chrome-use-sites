@@ -684,3 +684,8 @@ test('hosts advertising element relay delivery can use the private input handle'
  const cover={name:'cover.png',size:100,elementRelayUpload:true,setOn:async target=>{passed=target;const image=p.dialog.querySelector('ytcp-video-custom-still-editor .preview img');image.setAttribute('src','blob:modern-cover');image.closest('.preview').removeAttribute('hidden')}}
  const r=await run(p,{...FULL,'cover-mode':'upload',cover});assert.equal(r.ok,true,JSON.stringify(r));assert.equal(typeof passed,'object');assert.equal(passed.getAttribute('type'),'file');assert.equal(passed.getAttribute('accept'),'image/jpeg,image/png')
 })
+
+test('an old CLI cannot start a video upload when local frame preprocessing is missing',async()=>{
+ const r=await load({window:{},document:{}})({'cover-mode':'frame:1.5',video:{setOn:async()=>{throw Error('must not attach')}}})
+ assert.equal(r.status,'unsupported_cli')
+})
