@@ -7,6 +7,11 @@ file says what changed and when.
 
 ## 2026-10-26
 
+### Draft research
+- Offline cover-update transaction core under `experiments/cover-update`: plan
+  confirmation, restriction checks, stale-state refusal, durable-journal contract
+  and read-only reconciliation. No live driver or installed command is included.
+
 ### Added
 - `bilibili-creator/cover-select`: upload one image to synchronized 4:3 and
   16:9 crops, verify both loaded previews and confirm the new form cover.
