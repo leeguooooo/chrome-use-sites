@@ -3,33 +3,105 @@
   "name": "youtube-studio/video-upload",
   "description": "Upload a local video (--video), fill in YouTube Studio's upload dialog (details, advanced settings, visibility) and publish. One command with --until-done; without --video it fills in a dialog the file was already handed to",
   "timeout": 1800,
-  "retryStatuses": ["incomplete", "uploading", "processing", "checking"],
+  "retryStatuses": [
+    "incomplete",
+    "uploading",
+    "processing",
+    "checking"
+  ],
   "domain": "studio.youtube.com",
   "args": {
-    "video": {"required": false, "type": "file", "input": "ytcp-uploads-dialog input[type=file]", "description": "Local video file to upload (needs chrome-use 1.5.149+). The adapter opens the channel's upload dialog and hands the file to it; use with --until-done so the run waits for the upload, processing and checks"},
-    "cover": {"required": false, "type": "file", "input": "ytcp-thumbnail-uploader input[type=file]", "description": "Local JPG/PNG thumbnail. The adapter attaches it to the image-only input and checks the visible custom-thumbnail preview before leaving Details"},
-    "cover-mode": {"required": false, "description": "review (default) stops a public/unlisted publish for thumbnail approval; upload uses --cover; keep explicitly accepts the thumbnail currently shown. Private saves remain possible for later editing"},
-    "title": {"required": false, "description": "Video title, at most 100 characters, no < or >. Omit to keep what Studio has (the file name on a fresh upload)"},
-    "description": {"required": false, "description": "Description, at most 5000 characters, no < or >. Newlines are kept"},
-    "visibility": {"required": false, "description": "private (default) | unlisted | public"},
-    "made_for_kids": {"required": false, "description": "false (default) | true. Studio will not go on until this is answered"},
-    "ai_altered": {"required": false, "description": "yes | no: the altered or synthetic content question (realistic people, events or places). Omit to leave it unanswered"},
-    "category": {"required": false, "description": "Category display name as Studio shows it (e.g. 科学和技术 / Science & Technology) or its id suffix (SCIENCE, EDUCATION, ...)"},
-    "tags": {"required": false, "description": "Comma-separated tags. Missing ones are added; tags already on the video are kept"},
-    "playlist": {"required": false, "description": "Name of an existing playlist to add the video to"},
-    "language": {"required": false, "description": "Video language: a code (zh-Hans, en, ja) or the name Studio shows (中文（简体）)"},
-    "allow_embed": {"required": false, "description": "true (default) | false"},
-    "wait_checks": {"required": false, "description": "true (default): do not publish until the upload, processing and copyright checks are done. false publishes as soon as the upload is complete"}
+    "video": {
+      "required": false,
+      "type": "file",
+      "input": "ytcp-uploads-dialog input[type=file]",
+      "description": "Local video file to upload (needs chrome-use 1.5.149+). The adapter opens the channel's upload dialog and hands the file to it; use with --until-done so the run waits for the upload, processing and checks"
+    },
+    "cover": {
+      "required": false,
+      "type": "file",
+      "input": "ytcp-thumbnail-uploader input[type=file]",
+      "description": "Local JPG/PNG thumbnail. The adapter attaches it to the image-only input and checks the visible custom-thumbnail preview before leaving Details"
+    },
+    "cover-mode": {
+      "required": false,
+      "description": "review (default) stops a public/unlisted publish for thumbnail approval; upload uses --cover; keep explicitly accepts the thumbnail currently shown. Private saves remain possible for later editing; frame:<seconds> uses local FFmpeg and requires --cover-video and --cover-output on a compatible CLI"
+    },
+    "title": {
+      "required": false,
+      "description": "Video title, at most 100 characters, no < or >. Omit to keep what Studio has (the file name on a fresh upload)"
+    },
+    "description": {
+      "required": false,
+      "description": "Description, at most 5000 characters, no < or >. Newlines are kept"
+    },
+    "visibility": {
+      "required": false,
+      "description": "private (default) | unlisted | public"
+    },
+    "made_for_kids": {
+      "required": false,
+      "description": "false (default) | true. Studio will not go on until this is answered"
+    },
+    "ai_altered": {
+      "required": false,
+      "description": "yes | no: the altered or synthetic content question (realistic people, events or places). Omit to leave it unanswered"
+    },
+    "category": {
+      "required": false,
+      "description": "Category display name as Studio shows it (e.g. 科学和技术 / Science & Technology) or its id suffix (SCIENCE, EDUCATION, ...)"
+    },
+    "tags": {
+      "required": false,
+      "description": "Comma-separated tags. Missing ones are added; tags already on the video are kept"
+    },
+    "playlist": {
+      "required": false,
+      "description": "Name of an existing playlist to add the video to"
+    },
+    "language": {
+      "required": false,
+      "description": "Video language: a code (zh-Hans, en, ja) or the name Studio shows (中文（简体）)"
+    },
+    "allow_embed": {
+      "required": false,
+      "description": "true (default) | false"
+    },
+    "wait_checks": {
+      "required": false,
+      "description": "true (default): do not publish until the upload, processing and copyright checks are done. false publishes as soon as the upload is complete"
+    },
+    "cover-video": {
+      "required": false,
+      "type": "file",
+      "description": "Local source video for --cover-mode frame:<seconds>; extracted locally by the CLI, never attached by this argument"
+    },
+    "cover-output": {
+      "required": false,
+      "description": "New PNG path retained for frame review; existing files are never overwritten"
+    },
+    "allow-dark-cover": {
+      "required": false,
+      "description": "true explicitly accepts a reviewed near-black or nearly uniform frame; default false stops before browser interaction"
+    }
   },
-  "capabilities": ["dom"],
+  "capabilities": [
+    "dom"
+  ],
   "world": "isolated",
   "readOnly": false,
-  "example": "chrome-use site youtube-studio/video-upload --video ./clip.mp4 --until-done --title \"Hello\" --description @desc.txt --visibility private --made_for_kids false --ai_altered no --category 科学和技术 --tags \"a,b\" --language zh-Hans"
+  "example": "chrome-use site youtube-studio/video-upload --video ./clip.mp4 --until-done --title \"Hello\" --description @desc.txt --visibility private --made_for_kids false --ai_altered no --category 科学和技术 --tags \"a,b\" --language zh-Hans",
+  "coverFrame": {
+    "targets": [
+      "cover"
+    ]
+  }
 }
 */
 
 async function(args) {
   args = args || {}
+  if (String(args['cover-mode'] || '').startsWith('frame:')) return { error: 'Local frame mode requires a compatible CLI that preprocesses the cover before any upload', status: 'unsupported_cli' }
   const W = window
   const D = document
   // Every wait draws on this budget; the run stops at a safe point with status
@@ -678,7 +750,7 @@ async function(args) {
   if (!doneBtn || doneBtn.hasAttribute('disabled') || doneBtn.getAttribute('aria-disabled') === 'true') {
     return withFallbacks({ error: 'The publish button is disabled', url, done, warnings })
   }
-  const base = { url, visibility: visKey, title: title, warnings }
+  const base = { frame: args.frameCover, url, visibility: visKey, title: title, warnings }
   markPublishClick()
   await click(doneBtn)
   if (uiFallbacks.length) base.ui_fallbacks = uiFallbacks

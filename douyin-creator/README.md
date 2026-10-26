@@ -113,3 +113,20 @@ both changed previews are loaded. `cover_confirmation_required` includes the
 ratios prepared inside the editor and asks for inspection before retrying; a partial
 operation may already have changed the new form. Finish or cancel any open
 editor first. Unsupported pages/modes are refused before input.
+
+## Local video frame covers
+
+On a compatible CLI with FFmpeg, the native adapter supports
+`--cover-mode frame:1.5 --cover-video ./clip.mp4 --cover-output ./cover-1.5.png`.
+The time is explicit seconds into the local video. The CLI extracts one PNG,
+keeps it as the requested review artifact, then uses the normal verified image
+upload path. Douyin uses that frame for both ratios; the platform crops each.
+Use different files in upload mode for separate horizontal/vertical artwork.
+
+The output must be new and end in `.png`. Existing files are never overwritten.
+Missing/out-of-range frames fail before browser interaction. Near-black or
+nearly uniform frames stop for review; only a new extraction with
+`--allow-dark-cover true` and a new output path explicitly accepts that warning.
+This check is a pixel heuristic, not an assessment of cover quality. Local
+extraction does not invoke platform AI or select a platform timeline slider.
+Old CLIs do not implement the preprocessing and must be upgraded first.

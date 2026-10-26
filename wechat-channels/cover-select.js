@@ -5,13 +5,41 @@
   "timeout": 60,
   "domain": "channels.weixin.qq.com",
   "args": {
-    "cover": {"required": false, "type": "file", "input": ".single-cover-uploader-wrap input[type=file]", "description": "Local JPG/PNG cover. Uploaded to the actual input inside the wujie shadow root; requires a CLI build advertising file.elementRelayUpload"},
-    "cover-mode": {"required": false, "description": "upload (default with --cover), confirm (accept the current visible crop without uploading again), or keep (read the selected preview). AI and frame selection are explicitly unsupported on this captured editor"}
+    "cover": {
+      "required": false,
+      "type": "file",
+      "input": ".single-cover-uploader-wrap input[type=file]",
+      "description": "Local JPG/PNG cover. Uploaded to the actual input inside the wujie shadow root; requires a CLI build advertising file.elementRelayUpload"
+    },
+    "cover-mode": {
+      "required": false,
+      "description": "upload (default with --cover), confirm (accept the current visible crop without uploading again), or keep (read the selected preview). AI and frame selection are explicitly unsupported on this captured editor; frame:<seconds> uses local FFmpeg and requires --cover-video and --cover-output on a compatible CLI"
+    },
+    "cover-video": {
+      "required": false,
+      "type": "file",
+      "description": "Local source video for --cover-mode frame:<seconds>; extracted locally by the CLI, never attached by this argument"
+    },
+    "cover-output": {
+      "required": false,
+      "description": "New PNG path retained for frame review; existing files are never overwritten"
+    },
+    "allow-dark-cover": {
+      "required": false,
+      "description": "true explicitly accepts a reviewed near-black or nearly uniform frame; default false stops before browser interaction"
+    }
   },
-  "capabilities": ["dom"],
+  "capabilities": [
+    "dom"
+  ],
   "world": "isolated",
   "readOnly": false,
-  "example": "chrome-use site wechat-channels/cover-select --cover ./portrait.png --cover-mode upload"
+  "example": "chrome-use site wechat-channels/cover-select --cover ./portrait.png --cover-mode upload",
+  "coverFrame": {
+    "targets": [
+      "cover"
+    ]
+  }
 }
 */
 async function(args) {
@@ -118,7 +146,7 @@ async function(args) {
       return !visible(outer) && value && value.source !== before.source ? value : null
     }, 6000)
     if (!after) throw new Error('The changed cover preview could not be confirmed')
-    return { ok: true, status: 'cover_selected', verified: true, ratio: '3:4', width: after.width, height: after.height, published: false }
+    return { ok: true, status: 'cover_selected', verified: true, frame: args.frameCover, ratio: '3:4', width: after.width, height: after.height, published: false }
   } catch (error) {
     return { error: 'Cover operation stopped while ' + stage + ': ' + String(error?.message || error), status: 'cover_confirmation_required',
       hint: 'The draft may already contain an uploaded/cropped image. Inspect the current preview before retrying; nothing was published.' }

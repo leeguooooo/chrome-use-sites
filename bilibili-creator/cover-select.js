@@ -5,13 +5,40 @@
   "timeout": 60,
   "domain": "member.bilibili.com",
   "args": {
-    "cover": {"required": false, "type": "file", "description": "JPG/PNG image applied to both synchronized cover ratios; requires file.elementRelayUpload"},
-    "cover-mode": {"required": false, "description": "upload (default with a file) or review. AI/frame generation and existing-work updates are unavailable"}
+    "cover": {
+      "required": false,
+      "type": "file",
+      "description": "JPG/PNG image applied to both synchronized cover ratios; requires file.elementRelayUpload"
+    },
+    "cover-mode": {
+      "required": false,
+      "description": "upload (default with a file) or review. AI/frame generation and existing-work updates are unavailable; frame:<seconds> uses local FFmpeg and requires --cover-video and --cover-output on a compatible CLI"
+    },
+    "cover-video": {
+      "required": false,
+      "type": "file",
+      "description": "Local source video for --cover-mode frame:<seconds>; extracted locally by the CLI, never attached by this argument"
+    },
+    "cover-output": {
+      "required": false,
+      "description": "New PNG path retained for frame review; existing files are never overwritten"
+    },
+    "allow-dark-cover": {
+      "required": false,
+      "description": "true explicitly accepts a reviewed near-black or nearly uniform frame; default false stops before browser interaction"
+    }
   },
-  "capabilities": ["dom"],
+  "capabilities": [
+    "dom"
+  ],
   "world": "isolated",
   "readOnly": false,
-  "example": "chrome-use site bilibili-creator/cover-select --cover ./cover.png --cover-mode upload"
+  "example": "chrome-use site bilibili-creator/cover-select --cover ./cover.png --cover-mode upload",
+  "coverFrame": {
+    "targets": [
+      "cover"
+    ]
+  }
 }
 */
 async function(args) {
@@ -79,6 +106,6 @@ async function(args) {
     if(done.length!==1)throw Error('The completion control is not unique')
     await args.ui.click(done[0])
     if(!(await waitFor(()=>!editor() && main() && main()!==before)))throw Error('The new cover on the form was not confirmed after completion')
-    return {ok:true,status:'cover_selected',verified:true,ratios:ready.map((v,i)=>({ratio:i?'16:9':'4:3',width:v.width,height:v.height})),published:false}
+    return {ok:true,status:'cover_selected',verified:true,frame:args.frameCover,ratios:ready.map((v,i)=>({ratio:i?'16:9':'4:3',width:v.width,height:v.height})),published:false}
   }catch(error){return {error:'Stopped while '+stage+': '+String(error?.message||error),status:'cover_confirmation_required',published:false,hint:'An image may already be attached to the new form. Inspect it before retrying; nothing was submitted or saved.'}}
 }

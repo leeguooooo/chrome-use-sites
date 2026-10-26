@@ -8,6 +8,9 @@ file says what changed and when.
 ## 2026-10-26
 
 ### Added
+- Native WeChat, Bilibili, Douyin and YouTube cover adapters opt in to local
+  frame covers: explicit timestamp, retained PNG, near-black/uniform review and
+  the existing verified image-upload path. Requires a compatible CLI and FFmpeg.
 - `bilibili-creator/cover-select`: upload one image to synchronized 4:3 and
   16:9 crops, verify both loaded previews and confirm the new form cover.
   No publishing, draft saves or existing-work changes.
