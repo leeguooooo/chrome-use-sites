@@ -24,7 +24,7 @@ xiaohongshu-creator/_helper.js xiaohongshu-creator/me.js xiaohongshu-creator/not
 xiaohongshu-creator/note-stats.js xiaohongshu/me.js
 juejin/article-publish.js csdn/article-publish.js segmentfault/article-publish.js
 zhihu/article-publish.js
-douyin-creator/video-publish.js douyin-creator/me.js douyin-creator/works.js
+douyin-creator/video-publish.js douyin-creator/cover-select.js douyin-creator/me.js douyin-creator/works.js
 douyin/delete.js douyin/update.js
 youtube-studio/video-upload.js youtube-studio/channel.js
 bilibili-creator/video-publish.js

@@ -90,3 +90,21 @@ chrome-use site douyin-creator/works --cursor 1661351824000      # 出错后从�
 竖版 3:4，再明确传入 `--cover-mode keep`。仍可用 `--draft true` 保存草稿后改封面。
 适配器不会静默批准默认首帧。自动上传、AI 选择、任意截帧及修改已发布作品的封面
 还缺少已验证的编辑器样本，暂不支持，调用时会明确拒绝。
+
+## 分别选择横、竖封面
+
+`douyin-creator/cover-select` 只操作刚上传视频的新建表单，分别上传 JPG/PNG
+横、竖封面，确认编辑器并检查两张预览已变化。它不发布、不暂存、不生成 AI 封面、
+不选择视频帧，也不修改已有作品。上传需要 CLI 的 `file.elementRelayUpload`
+能力；已发布的 1.5.265 尚不具备这项能力。
+
+```sh
+chrome-use site douyin-creator/cover-select --cover-portrait ./portrait.png \
+  --cover-landscape ./landscape.png --cover-mode upload
+```
+
+不传文件时，默认 `review` 返回两张预览是否已加载；`keep` 明确接受当前预览，
+缺少任何一张都会拒绝。传入文件时不能选择 review/keep。只有两张封面确认后均显示
+新预览，才返回 `covers_selected`。中途停止会返回 `cover_confirmation_required`
+及编辑器中已准备的比例；表单可能已有部分改动，请先检查再重试。已有编辑器未关闭时会拒绝
+开始，不支持的页面和模式也会在操作前拒绝。

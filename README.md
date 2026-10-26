@@ -40,7 +40,7 @@ Each pack documents itself in its own folder, in English (`README.md`) and Chine
 | [`twitter/`](twitter/) | x.com | `search`, `thread`, `user`, `post`, `delete`, `like`, `follow` | read + post + delete + like/follow |
 | [`xiaohongshu/`](xiaohongshu/) | www.xiaohongshu.com | `me` | read |
 | [`xiaohongshu-creator/`](xiaohongshu-creator/) | creator.xiaohongshu.com | `me`, `notes`, `note-stats` | read |
-| [`douyin-creator/`](douyin-creator/) | creator.douyin.com | `me`, `works`, `video-publish` | read + publish |
+| [`douyin-creator/`](douyin-creator/) | creator.douyin.com | `me`, `works`, `video-publish`, `cover-select` | read + publish |
 | [`douyin/`](douyin/) | creator.douyin.com | `delete`, `update` | delete + edit works |
 | [`bilibili/`](bilibili/) | www.bilibili.com · member.bilibili.com | `user-videos`, `creator-stats` | read |
 | [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish` | publish |

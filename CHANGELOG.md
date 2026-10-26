@@ -8,6 +8,10 @@ file says what changed and when.
 ## 2026-10-26
 
 ### Added
+- `douyin-creator/cover-select`: upload separate portrait and landscape images to
+  a new video form and require changed canvas and final preview verification
+  before reporting success. No publishing, AI generation, frame selection or
+  existing-work changes.
 - `wechat-channels/cover-select`: upload a JPG/PNG cover to a new video form,
   confirm inline or nested cropping, and verify the changed 3:4 preview without
   publishing. Requires the relay-safe element-upload capability for upload mode;
