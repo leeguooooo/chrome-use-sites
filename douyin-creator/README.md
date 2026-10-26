@@ -92,3 +92,24 @@ pass `--cover-mode keep`. Draft saves (`--draft true`) remain available for
 later cover editing. No default first frame is silently approved. Automatic
 cover upload, AI selection, arbitrary frame selection and existing-work cover
 updates still need verified editor fixtures and are explicitly unsupported.
+
+## Separate landscape and portrait covers
+
+`douyin-creator/cover-select` operates only on a newly uploaded video form.
+It uploads both JPG/PNG files, confirms the shared editor, and verifies both changed
+previews. It never publishes, saves a draft, generates AI covers, selects a
+video frame, or edits an existing work. Upload mode requires a CLI exposing
+`file.elementRelayUpload`; released 1.5.265 does not include that capability.
+
+```sh
+chrome-use site douyin-creator/cover-select --cover-portrait ./portrait.png \
+  --cover-landscape ./landscape.png --cover-mode upload
+```
+
+With no files, `review` reports whether each preview is loaded. `keep` explicitly
+accepts the current previews and refuses if either is missing. File arguments
+cannot be combined with review/keep. Upload returns `covers_selected` only after
+both changed previews are loaded. `cover_confirmation_required` includes the
+ratios prepared inside the editor and asks for inspection before retrying; a partial
+operation may already have changed the new form. Finish or cancel any open
+editor first. Unsupported pages/modes are refused before input.

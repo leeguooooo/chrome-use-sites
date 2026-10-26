@@ -40,7 +40,7 @@ adapter 在你已登录的标签页里运行，所以**先登录目标网站**�
 | [`twitter/`](twitter/) | x.com | `search`、`thread`、`user`、`post`、`delete`、`like`、`follow` | 读取 + 发帖 + 删帖 + 点赞/关注 |
 | [`xiaohongshu/`](xiaohongshu/) | www.xiaohongshu.com | `me` | 读取 |
 | [`xiaohongshu-creator/`](xiaohongshu-creator/) | creator.xiaohongshu.com | `me`、`notes`、`note-stats` | 读取 |
-| [`douyin-creator/`](douyin-creator/) | creator.douyin.com | `me`、`works`、`video-publish` | 读取 + 发布 |
+| [`douyin-creator/`](douyin-creator/) | creator.douyin.com | `me`、`works`、`video-publish`、`cover-select` | 读取 + 发布 |
 | [`douyin/`](douyin/) | creator.douyin.com | `delete`、`update` | 删除 + 修改作品 |
 | [`bilibili/`](bilibili/) | www.bilibili.com · member.bilibili.com | `user-videos`、`creator-stats` | 读取 |
 | [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish` | 发布 |
