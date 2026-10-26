@@ -40,7 +40,7 @@ const ARGS = {
  *  - the Quill 简介 editor as a paragraph model,
  *  - 可见范围 radios, the recommended cover frames, and 立即投稿 / 存草稿.
  */
-function formPage({ uploading = false, rejectTags = [], onSubmit, noSource = false } = {}) {
+function formPage({ uploading = false, rejectTags = [], onSubmit, noSource = false, coverNoop = false } = {}) {
   const page = createPage({ html: fixture('upload-form.html'), url: URL_FRAME })
   const { window, document, body } = page
   const log = { clicks: [], typedTags: [] }
@@ -159,6 +159,7 @@ function formPage({ uploading = false, rejectTags = [], onSubmit, noSource = fal
       return
     }
     if (t.closest('.img-item-cover')) {
+      if (coverNoop) return
       q('.cover-main .cover-slot').innerHTML = '<img class="cover-img" src="blob:https://member.bilibili.com/cover">'
       log.clicks.push('cover')
       return
@@ -601,4 +602,20 @@ test('an unavailable cover candidate is refused before any submit', async () => 
   assert.match(r.error, /cover-index/)
   assert.ok(!p.log.clicks.includes('cover'))
   assert.ok(!p.log.clicks.includes('publish'))
+})
+
+
+test('an unchanged existing cover does not verify a different recommendation', async () => {
+  const p = formPage({ coverNoop: true })
+  p.body.querySelector('.cover-main .cover-slot').innerHTML = '<img class="cover-img" src="blob:old-cover">'
+  const r = await load(p)(ARGS)
+  assert.equal(r.status, 'cover_confirmation_required', JSON.stringify(r))
+  assert.ok(!p.log.clicks.includes('submit'))
+  assert.ok(!p.log.clicks.includes('draft'))
+})
+
+test('recommendations expose the background image source from the captured editor', async () => {
+  const p = formPage()
+  const r = await load(p)({ ...ARGS, 'cover-mode': 'review', 'cover-index': undefined })
+  assert.equal(r.cover_candidates[0].url, 'blob:https://member.bilibili.com/cover')
 })

@@ -626,14 +626,28 @@ async function(args) {
   const coverMode = String(args['cover-mode'] || 'review').trim()
   if (!['review', 'ai', 'keep'].includes(coverMode)) return { error: 'Unsupported cover-mode: ' + coverMode, hint: 'Use review, ai with --cover-index, or keep after checking the current cover. Upload/frame/update need a separately verified cover editor.' }
   const recommendations = all('.cover-ai .img-item-cover').filter(inForm)
-  const coverCandidates = recommendations.map((node, index) => ({ index: index + 1, url: (node.querySelector('img') || node).getAttribute('src') || null }))
+  const coverSource = node => {
+    if (!node) return null
+    const img = node.querySelector('img') || node
+    const src = img.getAttribute('src')
+    if (src) return src
+    const match = String(node.getAttribute('style') || '').match(/url\(\s*(['"]?)(.*?)\1\s*\)/i)
+    return match && match[2] || null
+  }
+  const currentCover = () => coverSource(one('.cover-main .cover-slot .cover-img'))
+  const coverCandidates = recommendations.map((node, index) => ({ index: index + 1, url: coverSource(node) }))
   const coverEmpty = () => !!one('.cover-main .cover-empty')
   let cover = coverEmpty() ? 'empty' : 'set'
   if (coverMode === 'ai' && args['cover-index'] != null) {
     const index = Number(args['cover-index'])
     if (!Number.isInteger(index) || index < 1 || index > recommendations.length) return { error: 'cover-index is outside the returned cover_candidates', cover_candidates: coverCandidates }
+    const expected = coverCandidates[index - 1].url
+    const before = currentCover()
     await click(recommendations[index - 1])
-    if (!(await waitFor(() => !coverEmpty(), 1000))) return { error: 'The selected cover could not be confirmed; nothing was submitted', cover_candidates: coverCandidates }
+    if (!(await waitFor(() => {
+      const after = currentCover()
+      return !coverEmpty() && after && (expected ? after === expected : after !== before)
+    }, 1000))) return { error: 'The selected cover could not be confirmed; nothing was submitted', status: 'cover_confirmation_required', cover_candidates: coverCandidates }
     cover = 'recommended_frame'
   } else if (coverMode !== 'keep' || coverEmpty()) {
     return { ok: false, status: 'cover_selection_required', done, cover, cover_candidates: coverCandidates,

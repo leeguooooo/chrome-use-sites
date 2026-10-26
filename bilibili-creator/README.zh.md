@@ -98,3 +98,5 @@ chrome-use site bilibili-creator/video-publish --title "Hello" --tags a
 chrome-use screenshot --selector .cover-ai
 chrome-use site bilibili-creator/video-publish --title "Hello" --tags a --cover-mode ai --cover-index 2
 ```
+
+选择推荐封面后会核对当前预览与候选图片来源，支持从 CSS 背景图读取候选。如果旧封面没有变成所选图片，返回 `cover_confirmation_required`，不投稿或暂存。

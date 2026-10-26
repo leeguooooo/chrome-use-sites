@@ -101,3 +101,5 @@ chrome-use site bilibili-creator/video-publish --title "Hello" --tags a
 chrome-use screenshot --selector .cover-ai
 chrome-use site bilibili-creator/video-publish --title "Hello" --tags a --cover-mode ai --cover-index 2
 ```
+
+Recommendation selection verifies that the current cover matches the chosen candidate source (including CSS background-image candidates). An unchanged unrelated cover returns `cover_confirmation_required` and never submits.
