@@ -110,3 +110,5 @@ chrome-use site youtube-studio/channel --limit 0   # 只要总数
 仍可保存为私密视频，但会提醒在更改可见性前核对缩略图。
 平台 AI／指定帧选择及修改已发布作品缩略图暂未实现。本改动经过离线样本测试，
 没有修改真实频道。
+
+没有 `elementRelayUpload` 能力的已发布 CLI 会使用已知且唯一的缩略图选择器，沿用普通 relay 上传路径，不添加 DOM 标记。

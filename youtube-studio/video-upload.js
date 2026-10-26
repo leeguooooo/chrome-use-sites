@@ -605,7 +605,10 @@ async function(args) {
     const alreadyAttached = current && current.name === file.name && current.size === file.size
     const before = preview()
     if (!alreadyAttached) {
-      try { await file.setOn(input) } catch (error) { return { error: 'Could not attach thumbnail: ' + String(error && error.message || error) } }
+      // Older released CLIs lack relay fallback for element targets. This
+      // existing, unique light-DOM selector needs no marker and uses normal upload.
+      const target = file.elementRelayUpload === true ? input : 'ytcp-uploads-dialog ytcp-thumbnail-uploader input[type=file]'
+      try { await file.setOn(target) } catch (error) { return { error: 'Could not attach thumbnail: ' + String(error && error.message || error) } }
       if (!(await waitFor(() => { const now = preview(); return now && now !== before }, Math.min(4000, left() - 1000), 100))) {
         return { ok: false, status: 'cover_confirmation_required', url, hint: 'The custom thumbnail preview did not confirm the uploaded image. Finish any upload/crop prompt in Studio and inspect before retrying. Nothing was published.' }
       }

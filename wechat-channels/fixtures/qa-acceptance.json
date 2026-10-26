@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-26",
+  "scope": "An owned create-form test in the user-authorized background Chrome window; no published work modified",
+  "ioValidationBuild": {
+    "version": "1.5.265 temporary development build, not a release",
+    "sourceArchiveSha256": "59612e8ac033ee1027fbef0ec57a31fd55b039d4803a45de467d5afdea6c8add",
+    "binarySha256": "81e7baf02014cccae6fd13bcdd1bb6eaebb82f8c9e5f4e9bb6ea5dd0179170c2"
+  },
+  "checks": {
+    "selectedPreviewAfterExplicitConfirm": {
+      "width": 540,
+      "height": 720,
+      "editorClosed": true,
+      "screenshot": "qa-selected-preview.png"
+    },
+    "completeAdapterInvocation": {
+      "height": 960,
+      "ok": true,
+      "published": false,
+      "ratio": "3:4",
+      "status": "cover_selected",
+      "verified": true,
+      "width": 720
+    },
+    "qaFormCleared": true,
+    "ownedTabCloseVerifiedAbsent": true,
+    "publishOrSaveDraftCommandsIssued": false
+  },
+  "limits": [
+    "The capability advertisement and old-host guard were checked separately by runtime-protocol/offline tests",
+    "AI/frame selection and updates of published works are unsupported",
+    "Only the captured account editor variant was checked live"
+  ],
+  "screenshotSha256": "62260fae2fdb187667a16d8fbbd4056fc9c60181b8ee8a4614d468817d8e5742"
+}
