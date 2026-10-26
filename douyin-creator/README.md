@@ -130,3 +130,5 @@ nearly uniform frames stop for review; only a new extraction with
 This check is a pixel heuristic, not an assessment of cover quality. Local
 extraction does not invoke platform AI or select a platform timeline slider.
 Old CLIs do not implement the preprocessing and must be upgraded first.
+
+`video-publish` refuses cover file/frame arguments before touching the form. Use `cover-select` first, inspect the previews, then explicitly choose `--cover-mode keep` for publishing. Supplying `--cover` together with keep never silently ignores the file.

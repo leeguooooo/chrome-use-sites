@@ -32,6 +32,9 @@ file says what changed and when.
   keep/explicit confirm are available for already prepared previews.
 
 ### Fixed
+- Native Bilibili and Douyin `video-publish` commands refuse unsupported cover
+  file/frame arguments before form input, including with keep mode, and point
+  callers to `cover-select` instead of ignoring the files.
 - `bilibili-creator/video-publish`: verify the selected recommendation against
   the actual current cover, and read candidates rendered as CSS background images.
   An unrelated existing cover no longer makes an ineffective click look successful.

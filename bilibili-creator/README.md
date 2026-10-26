@@ -154,3 +154,5 @@ combine generation and selection in one request. A selected candidate must
 match the actual form cover before `candidate_selected` is returned. Both crop
 ratios still need review before publishing (`requires_crop_review: true`).
 This command never publishes or saves a draft. The live synthetic-video probe observed AI generation failure. The first selection run stopped on URL verification; read-only inspection then confirmed candidate 2 selected and an encoded main preview. The corrected verification is fixture-tested, not rerun end-to-end on the real account. Successful AI generation is fixture-tested, not claimed as live acceptance.
+
+`video-publish` refuses cover file/frame arguments before touching the form. Use `cover-select` first, inspect the previews, then explicitly choose `--cover-mode keep` for publishing. Supplying `--cover` together with keep never silently ignores the file.
