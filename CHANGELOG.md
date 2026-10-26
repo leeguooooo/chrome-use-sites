@@ -8,6 +8,9 @@ file says what changed and when.
 ## 2026-10-26
 
 ### Added
+- `bilibili-creator/cover-select`: upload one image to synchronized 4:3 and
+  16:9 crops, verify both loaded previews and confirm the new form cover.
+  No publishing, draft saves or existing-work changes.
 - `douyin-creator/cover-select`: upload separate portrait and landscape images to
   a new video form and require changed canvas and final preview verification
   before reporting success. No publishing, AI generation, frame selection or

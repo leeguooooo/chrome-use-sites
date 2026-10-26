@@ -43,7 +43,7 @@ adapter 在你已登录的标签页里运行，所以**先登录目标网站**�
 | [`douyin-creator/`](douyin-creator/) | creator.douyin.com | `me`、`works`、`video-publish`、`cover-select` | 读取 + 发布 |
 | [`douyin/`](douyin/) | creator.douyin.com | `delete`、`update` | 删除 + 修改作品 |
 | [`bilibili/`](bilibili/) | www.bilibili.com · member.bilibili.com | `user-videos`、`creator-stats` | 读取 |
-| [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish` | 发布 |
+| [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish`、`cover-select` | 发布 |
 | [`youtube-studio/`](youtube-studio/) | studio.youtube.com | `channel`、`video-upload` | 读取 + 发布 |
 | [`wechat-channels/`](wechat-channels/) | channels.weixin.qq.com | `cover-select` | 新草稿封面选择 |
 | [`juejin/`](juejin/) · [`csdn/`](csdn/) · [`segmentfault/`](segmentfault/) · [`zhihu/`](zhihu/) | 国内技术社区 | `article-publish` | 发布 |

@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-26",
+  "cli_commit": "a081dda0c0a7c3711fd6bae504f404066b92214f",
+  "source_hash": "6d39ba8eab66b5fc19e0fb18135e93c5c348cbdb36f5b0c4dd4a21a73294663f",
+  "context": "new video form in dedicated background Agent window",
+  "adapter_invocations": 1,
+  "result": {
+    "ok": true,
+    "published": false,
+    "ratios": [
+      {
+        "height": 375,
+        "ratio": "4:3",
+        "width": 500
+      },
+      {
+        "height": 281,
+        "ratio": "16:9",
+        "width": 500
+      }
+    ],
+    "status": "cover_selected",
+    "verified": true
+  },
+  "elapsed_ms": 3418,
+  "checks": [
+    "Image-only input was targeted with relay-safe file.setOn(element).",
+    "Both dual-ratio sync controls were already checked.",
+    "Both changed crop canvases and loaded ratio previews were confirmed.",
+    "Editor closed and the main form cover source changed."
+  ],
+  "limits": [
+    "No publication, draft save, or edits to existing works.",
+    "AI generation, arbitrary frame selection, and existing-work updates are not implemented."
+  ]
+}

@@ -103,3 +103,20 @@ chrome-use site bilibili-creator/video-publish --title "Hello" --tags a --cover-
 ```
 
 Recommendation selection verifies that the current cover matches the chosen candidate source (including CSS background-image candidates). An unchanged unrelated cover returns `cover_confirmation_required` and never submits.
+
+## Image cover selection
+
+`bilibili-creator/cover-select --cover ./cover.png --cover-mode upload` applies
+one JPG/PNG to the 4:3 and 16:9 crops of a newly uploaded video. Both
+双比例同步改动 checkboxes must already be enabled; otherwise it refuses before
+file delivery. It verifies both changed canvases and loaded previews, then
+confirms the shared editor and checks the new form cover. It never submits,
+saves a draft, or changes an existing work. Upload requires a CLI advertising
+`file.elementRelayUpload`; released 1.5.265 does not have that capability.
+
+With no file, `review` reports `cover_selection_required` and whether a cover is
+set, without opening the editor. Only upload/review are supported here; existing
+recommendation selection stays in `video-publish`. AI generation, arbitrary
+frames and cover updates remain unavailable. `cover_confirmation_required`
+means an image may already have been attached: inspect the current state before
+retrying. A file cannot be combined with review mode.

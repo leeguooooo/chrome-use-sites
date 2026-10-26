@@ -100,3 +100,17 @@ chrome-use site bilibili-creator/video-publish --title "Hello" --tags a --cover-
 ```
 
 选择推荐封面后会核对当前预览与候选图片来源，支持从 CSS 背景图读取候选。如果旧封面没有变成所选图片，返回 `cover_confirmation_required`，不投稿或暂存。
+
+## 上传图片封面
+
+`bilibili-creator/cover-select --cover ./cover.png --cover-mode upload` 将同一张
+JPG/PNG 应用到新上传视频的 4:3、16:9 两种裁剪。两个“双比例同步改动”开关必须
+已开启，否则在传文件前拒绝。适配器会检查两张画布和已加载的预览均变化，再确认
+共用编辑器、核对表单新封面。不投稿、不暂存、不修改已有作品。上传需要 CLI 的
+`file.elementRelayUpload` 能力，已发布的 1.5.265 尚不具备。
+
+不传文件时默认 `review`，返回 `cover_selection_required` 和当前是否有封面，
+不打开编辑器。这里只支持 upload/review；已有推荐候选仍由 `video-publish`
+选择。AI 生成、任意视频帧和改已有作品封面尚未实现。返回
+`cover_confirmation_required` 时，表单可能已附上图片，请先检查再重试。传入文件
+不能选择 review 模式。
