@@ -43,7 +43,7 @@ Each pack documents itself in its own folder, in English (`README.md`) and Chine
 | [`douyin-creator/`](douyin-creator/) | creator.douyin.com | `me`, `works`, `video-publish`, `cover-select` | read + publish |
 | [`douyin/`](douyin/) | creator.douyin.com | `delete`, `update` | delete + edit works |
 | [`bilibili/`](bilibili/) | www.bilibili.com · member.bilibili.com | `user-videos`, `creator-stats` | read |
-| [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish` | publish |
+| [`bilibili-creator/`](bilibili-creator/) | member.bilibili.com | `video-publish`, `cover-select` | publish |
 | [`youtube-studio/`](youtube-studio/) | studio.youtube.com | `channel`, `video-upload` | read + publish |
 | [`wechat-channels/`](wechat-channels/) | channels.weixin.qq.com | `cover-select` | new-draft cover selection |
 | [`juejin/`](juejin/) · [`csdn/`](csdn/) · [`segmentfault/`](segmentfault/) · [`zhihu/`](zhihu/) | Chinese dev platforms | `article-publish` | publish |
