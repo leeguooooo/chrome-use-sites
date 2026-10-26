@@ -646,7 +646,9 @@ async function(args) {
     await click(recommendations[index - 1])
     if (!(await waitFor(() => {
       const after = currentCover()
-      return !coverEmpty() && after && (expected ? after === expected : after !== before)
+      const chosen = recommendations[index - 1]
+      const uniquelySelected = chosen.classList.contains('img-item-cover-selected') && all('.cover-ai .img-item-cover-selected').filter(inForm).length === 1
+      return !coverEmpty() && after && (after === expected || (after !== before && (!expected || uniquelySelected)))
     }, 1000))) return { error: 'The selected cover could not be confirmed; nothing was submitted', status: 'cover_confirmation_required', cover_candidates: coverCandidates }
     cover = 'recommended_frame'
   } else if (coverMode !== 'keep' || coverEmpty()) {

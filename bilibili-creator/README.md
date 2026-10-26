@@ -137,3 +137,20 @@ nearly uniform frames stop for review; only a new extraction with
 This check is a pixel heuristic, not an assessment of cover quality. Local
 extraction does not invoke platform AI or select a platform timeline slider.
 Old CLIs do not implement the preprocessing and must be upgraded first.
+
+## Platform AI candidates
+
+`bilibili-creator/cover-ai` lists rendered candidates, their real UI label and a
+`candidate_token` without choosing one. `--generate true` clicks AI生成 once
+and waits for an observed result. A platform generation failure is reported as
+`ai_generation_failed`, even if system-recommended frames remain. Those frames
+are not described as generated AI results. An already failed state is never
+retried automatically; an unknown outcome has `retryable: false`.
+
+Inspect `screenshot --selector .cover-ai`, then explicitly choose with
+`--cover-index 2 --candidate-token <returned-token>`. The token binds current
+image sources and the UI label; changed candidates require a new review. Do not
+combine generation and selection in one request. A selected candidate must
+match the actual form cover before `candidate_selected` is returned. Both crop
+ratios still need review before publishing (`requires_crop_review: true`).
+This command never publishes or saves a draft. The live synthetic-video probe observed AI generation failure. The first selection run stopped on URL verification; read-only inspection then confirmed candidate 2 selected and an encoded main preview. The corrected verification is fixture-tested, not rerun end-to-end on the real account. Successful AI generation is fixture-tested, not claimed as live acceptance.
