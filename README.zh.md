@@ -52,6 +52,7 @@ adapter 在你已登录的标签页里运行，所以**先登录目标网站**�
 | [`si12333/`](si12333/) | si.12333.gov.cn | `pension-payments` | 读取 |
 | [`hackernews/`](hackernews/) | news.ycombinator.com | `top`, `thread` | 读取 |
 | [`sggit/`](sggit/) | sg-git-src.pwtk.cc（自建 Gogs） | `pr-create`、`pr-list`、`pr-merge` | 读取 + 写入 |
+| [`zentao/`](zentao/) | zentao.pwtk.cc (self-hosted ZenTao) | `bugs`, `bug`, `bug-image`, `bug-comment`, `bug-resolve` | 读取 + 上传截图 + 备注 + 解决 |
 
 改动记录在 [CHANGELOG.md](CHANGELOG.md)。每个 PR 都必须遵守的贡献规范：[CONTRIBUTING.zh.md](CONTRIBUTING.zh.md)。
 
