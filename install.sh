@@ -32,7 +32,8 @@ wechat-channels/cover-select.js
 bilibili/user-videos.js bilibili/creator-stats.js
 si12333/pension-payments.js
 hackernews/top.js hackernews/thread.js
-appstoreconnect/apps.js appstoreconnect/app-create.js appstoreconnect/builds.js"
+appstoreconnect/apps.js appstoreconnect/app-create.js appstoreconnect/builds.js
+zentao/bugs.js zentao/bug.js zentao/bug-image.js zentao/bug-comment.js zentao/bug-resolve.js"
 
 # Files a pack needs that live in another repo. The twitter adapters call
 # findGraphQLQueryId / findTransactionIdGenerator, which are defined in the

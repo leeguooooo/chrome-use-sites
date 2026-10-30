@@ -5,6 +5,18 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-10-30
+
+### Added
+- `zentao/bugs`: list all product bugs, including closed records, with account
+  and status filters, pagination completeness, and explicit partial-result flags.
+- `zentao/bug`: read bug details and images from both steps and action comments.
+- `zentao/bug-image`: upload a local screenshot, verify the stored image, and
+  return the image URL and upload UID for a subsequent comment or resolution.
+- `zentao/bug-comment` and `zentao/bug-resolve`: post through the signed-in
+  session and verify the new action, text, image references, and resolved fields.
+  Uncertain writes return a non-retryable outcome instead of repeating a post.
+
 ## 2026-10-26
 
 ### Draft research

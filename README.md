@@ -52,6 +52,7 @@ Each pack documents itself in its own folder, in English (`README.md`) and Chine
 | [`si12333/`](si12333/) | si.12333.gov.cn | `pension-payments` | read |
 | [`hackernews/`](hackernews/) | news.ycombinator.com | `top`, `thread` | read |
 | [`sggit/`](sggit/) | sg-git-src.pwtk.cc (self-hosted Gogs) | `pr-create`, `pr-list`, `pr-merge` | read + write |
+| [`zentao/`](zentao/) | zentao.pwtk.cc (self-hosted ZenTao) | `bugs`, `bug`, `bug-image`, `bug-comment`, `bug-resolve` | read + image upload + comment + resolve |
 
 Changes are logged in [CHANGELOG.md](CHANGELOG.md). Contribution rules, required for every PR: [CONTRIBUTING.md](CONTRIBUTING.md).
 
