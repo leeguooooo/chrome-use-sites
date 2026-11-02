@@ -32,6 +32,7 @@ wechat-channels/cover-select.js
 bilibili/user-videos.js bilibili/creator-stats.js
 si12333/pension-payments.js
 hackernews/top.js hackernews/thread.js
+google/search.js
 appstoreconnect/apps.js appstoreconnect/app-create.js appstoreconnect/builds.js
 zentao/bugs.js zentao/bug.js zentao/bug-image.js zentao/bug-comment.js zentao/bug-resolve.js"
 
@@ -60,7 +61,7 @@ done
 
 echo "✓ done"
 echo
-echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|xiaohongshu|douyin-creator|douyin|youtube-studio|wechat-channels|bilibili-creator|bilibili|juejin|csdn|segmentfault|zhihu|si12333|hackernews|appstoreconnect)/'"
+echo "Verify:  chrome-use site list | grep -E '^(sggit|twitter|chatgpt|xiaohongshu-creator|xiaohongshu|douyin-creator|douyin|youtube-studio|wechat-channels|bilibili-creator|bilibili|juejin|csdn|segmentfault|zhihu|si12333|hackernews|google|appstoreconnect)/'"
 echo "Try:     chrome-use site twitter/search \"chrome-use\""
 echo
 echo "Note: adapters run in YOUR logged-in browser tab, so you must be"
