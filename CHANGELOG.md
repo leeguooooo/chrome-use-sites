@@ -5,6 +5,17 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-11-03
+
+### Added
+- `google/search`: replaces the community pack's version (chrome-use #836). A
+  results page that parses to nothing is now an error with a hint instead of a
+  silent `count: 0`, unless Google itself says there are no results
+  (`no_results: true`). Every result carries an absolute `url` (Google's
+  `/goto?url=` redirects become `https://www.google.com/goto?…` with
+  `redirect: true`), plus `display_url` and `domain` from the address Google
+  prints under the title. `--count` up to 50 reads `&start=10` pages.
+
 ## 2026-10-30
 
 ### Added
