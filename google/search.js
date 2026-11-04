@@ -158,6 +158,20 @@ async function(args) {
 
   if (!results.length) {
     if (sawNoResults) return {query: args.query, count: 0, results: [], no_results: true};
+    const first = ORIGIN + '/search?q=' + encodeURIComponent(args.query);
+    // A profile that has never loaded a Google results page has no Google
+    // cookies yet, and Google answers the background request with its
+    // script check instead of results. Loading the results page in the tab
+    // once sets them. The tab moves after this result is returned, so the
+    // run itself is not cut off; the next run reads the page or fetches again.
+    if (location.pathname !== '/search' && typeof location.assign === 'function') {
+      setTimeout(() => location.assign(first), 400 + Math.random() * 400);
+      return {
+        error: 'Google answered with its script check instead of results (usually a profile that has not used Google search yet)',
+        hint: 'The tab is now loading ' + first + '. Run the same command again',
+        retry: true,
+      };
+    }
     return {
       error: 'No results could be read from the Google results page',
       hint: 'Google may have changed its markup or served a page without results. Open '

@@ -14,11 +14,11 @@ class DOMParser {
   parseFromString(html) { return createPage({ html: bodyOf(html) }).document }
 }
 
-function loadAdapter(fetch, { url = 'https://www.google.com/', html = '' } = {}) {
+function loadAdapter(fetch, { url = 'https://www.google.com/', html = '', loc } = {}) {
   const src = fs.readFileSync(new URL('./search.js', import.meta.url), 'utf8')
   const page = createPage({ html, url })
   return new Function('fetch', 'DOMParser', 'location', 'document', `return (${src})`)(
-    fetch, DOMParser, new URL(url), page.document)
+    fetch, DOMParser, loc || new URL(url), page.document)
 }
 
 // routes: { '/search?q=…': 'file.html' } keyed by path + search.
@@ -79,6 +79,18 @@ test('a page that parses to nothing is an error with a hint, never a silent coun
   const out = await loadAdapter(google({ '/search?q=q': 'js-only.html' }).fetch)({ query: 'q' })
   assert.match(out.error, /No results could be read/)
   assert.match(out.hint, /\/search\?q=q/)
+})
+
+test('a script check off the results page loads the results page in the tab and asks for a rerun', async () => {
+  const assigned = []
+  const loc = Object.assign(new URL('https://www.google.com/'), { assign: (u) => assigned.push(u) })
+  const out = await loadAdapter(google({ '/search?q=a%20b': 'js-only.html' }).fetch, { loc })({ query: 'a b' })
+  assert.match(out.error, /script check/)
+  assert.match(out.hint, /Run the same command again/)
+  assert.equal(out.retry, true)
+  assert.deepEqual(assigned, [], 'the tab moves only after the result is returned')
+  await new Promise((r) => setTimeout(r, 900))
+  assert.deepEqual(assigned, ['https://www.google.com/search?q=a%20b'])
 })
 
 test('when the fetched page is empty but the tab shows this query, the rendered page is read', async () => {
