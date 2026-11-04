@@ -25,6 +25,7 @@ chrome-use site google/search "chrome-use" --count 25 --json   # reads ?start=10
 ### Limits
 
 - A results page that parses to no results is an **error** with a hint (open the search in the tab and read it), never a silent `count: 0`. If the tab is already on the same query's results, the adapter reads the rendered page first.
+- In a profile that has never loaded a Google results page, Google answers the adapter's background request with its script check. The adapter then loads the results page in the tab and returns an error with `retry: true`; run the same command again.
 - When Google says the query matched nothing, the result is `{ count: 0, results: [], no_results: true }`. This is recognised in English, Chinese, Japanese and Korean.
 - A CAPTCHA (`/sorry/`, HTTP 429) is an error; solve it in the tab and retry.
 - Pages after the first wait 0.4–1 s between requests.

@@ -5,6 +5,15 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-11-04
+
+### Fixed
+- `google/search`: in a profile that has never loaded a Google results page,
+  Google answers the background request with its script check, so every run
+  failed with "No results could be read" (chrome-use #836). The adapter now
+  loads the results page in the tab after returning, with `retry: true` and a
+  hint to run the command again; the next run reads the results.
+
 ## 2026-11-03
 
 ### Added
