@@ -1,8 +1,8 @@
-# `sggit/` — pull requests on our self-hosted Gogs (`sg-git-src.pwtk.cc`)
+# `sggit/` — pull requests on our self-hosted Gogs (`sg-cy-git.caminonode.com`)
 
 English · [中文](README.zh.md)
 
-One-command pull requests on our internal Gogs at `sg-git-src.pwtk.cc`, instead of clicking through the compare page. `pr-list` is read-only; `pr-create` and `pr-merge` write (they post the same forms the web UI posts). You must be signed in to `sg-git-src.pwtk.cc` in the browser chrome-use drives, with **WARP connected**.
+One-command pull requests on our internal Gogs at `sg-cy-git.caminonode.com`, instead of clicking through the compare page. `pr-list` is read-only; `pr-create` and `pr-merge` write (they post the same forms the web UI posts). You must be signed in to `sg-cy-git.caminonode.com` in the browser chrome-use drives, with **WARP connected**.
 
 ## Commands
 
