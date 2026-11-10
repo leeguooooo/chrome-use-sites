@@ -5,6 +5,15 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-11-10
+
+### Changed
+- `sggit/*`: the Gogs host is now `sg-cy-git.caminonode.com`. The
+  `sg-git-src.pwtk.cc` DNS record is being removed; `sg-cy-git.caminonode.com`
+  stays and is the same Gogs with the same accounts. Log in to
+  `https://sg-cy-git.caminonode.com` in the chrome-use browser once, since the
+  login cookie is per host.
+
 ## 2026-11-04
 
 ### Fixed
