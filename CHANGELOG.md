@@ -7,6 +7,18 @@ file says what changed and when.
 
 ## 2026-11-19
 
+### Added
+- `gemini/ask`, `gemini/read`, `gemini/history`, `gemini/detail`: replace the
+  OpenCLI commands of the same names (chrome-use #904). With a dialog open
+  over the Gemini page, the OpenCLI `gemini/ask` returned side-navigation text
+  as the answer and exited 0. Here the answer is read only from the answer
+  element; a prompt that was sent but not answered in time is an error that
+  says it was sent (`status: "answer_not_read"`), and a dialog is reported
+  with its title and buttons (`status: "blocked_by_dialog"`) without pressing
+  anything in it. `gemini/ask` takes `--fresh true` for a new conversation:
+  `--new` is a chrome-use global flag and never reaches an adapter. Model and
+  thinking selection are not offered.
+
 ### Fixed
 - `xiaohongshu-creator/me`, `xiaohongshu-creator/notes`,
   `xiaohongshu-creator/note-stats`: on a creator page other than the home, note

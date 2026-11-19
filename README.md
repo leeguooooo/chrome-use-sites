@@ -50,6 +50,7 @@ Each pack documents itself in its own folder, in English (`README.md`) and Chine
 | [`chatgpt/`](chatgpt/) | chatgpt.com | `me`, `conversations`, `conversation`, `projects`, `models`, `images`, `open-project` | read (+ open project) |
 | [`appstoreconnect/`](appstoreconnect/) | appstoreconnect.apple.com | `apps`, `app-create`, `builds` | read + create |
 | [`si12333/`](si12333/) | si.12333.gov.cn | `pension-payments` | read |
+| [`gemini/`](gemini/) | gemini.google.com | `ask`, `read`, `history`, `detail` | read + send a prompt |
 | [`hackernews/`](hackernews/) | news.ycombinator.com | `top`, `thread` | read |
 | [`sggit/`](sggit/) | sg-cy-git.caminonode.com (self-hosted Gogs) | `pr-create`, `pr-list`, `pr-merge` | read + write |
 | [`zentao/`](zentao/) | zentao.pwtk.cc (self-hosted ZenTao) | `bugs`, `bug`, `bug-image`, `bug-comment`, `bug-resolve` | read + image upload + comment + resolve |

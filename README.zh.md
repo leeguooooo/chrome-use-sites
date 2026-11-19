@@ -50,6 +50,7 @@ adapter 在你已登录的标签页里运行，所以**先登录目标网站**�
 | [`chatgpt/`](chatgpt/) | chatgpt.com | `me`、`conversations`、`conversation`、`projects`、`models`、`images`、`open-project` | 读取（+ 打开项目） |
 | [`appstoreconnect/`](appstoreconnect/) | appstoreconnect.apple.com | `apps`、`app-create`、`builds` | 读取 + 创建 |
 | [`si12333/`](si12333/) | si.12333.gov.cn | `pension-payments` | 读取 |
+| [`gemini/`](gemini/) | gemini.google.com | `ask`、`read`、`history`、`detail` | 读取 + 发送提示词 |
 | [`hackernews/`](hackernews/) | news.ycombinator.com | `top`, `thread` | 读取 |
 | [`sggit/`](sggit/) | sg-cy-git.caminonode.com（自建 Gogs） | `pr-create`、`pr-list`、`pr-merge` | 读取 + 写入 |
 | [`zentao/`](zentao/) | zentao.pwtk.cc (self-hosted ZenTao) | `bugs`, `bug`, `bug-image`, `bug-comment`, `bug-resolve` | 读取 + 上传截图 + 备注 + 解决 |
