@@ -46,6 +46,7 @@ chrome-use site xiaohongshu-creator/note-stats "https://www.xiaohongshu.com/expl
 
 **容易踩的坑**
 
+- **在创作者后台的任何页面都能用。** adapter 先从首页、笔记管理、数据中心的模块里找页面的 HTTP client，找不到再从任何已加载、用接口 key 调它的模块里找，所以停在发布流程或 `/publish/success` 也能直接跑，标签页不会被挪走。如果这样找不出唯一的 client，adapter 会打开 `/new/note-manager`，返回 `status: "navigating"` 和提示：再跑一次同样的命令，或者加 `--until-done` 让 chrome-use 在那边自动重跑。只有停在笔记管理页还找不到 client 时，才会报「changed its bundle」。
 - **缺的指标是 `null`，不是 0。** 数据中心用 `-1` 表示「还没算出来」，发布不到一天的笔记曝光、观看时长和大部分比率都是 `-1`。图文笔记的视频类比率返回 `0`，意思是「不适用」，也统一成 `null`。
 - **流量来源和观众画像要有足够观众。** 不够门槛时（页面上一处写 50 人，一处写 100 人）返回 `available: false` 和 `reason`，比如 `"观看数不足100，暂时无法分析"`。
 - **`notes` 的游标是页码，不是偏移量。** `limit` 把某一页截断时，`next_page` 会指回那一页，续翻时会重复几条而不是漏掉，按 `id` 去重即可。

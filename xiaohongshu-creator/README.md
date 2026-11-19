@@ -46,6 +46,7 @@ Visibility codes:
 
 **Gotchas**
 
+- **Any creator page works.** The page's HTTP client is looked up first through the home, note manager and data-center modules, then through any loaded module that calls it with an endpoint key, so the adapters also run from the publish flow or `/publish/success` without moving the tab. If that lookup does not give exactly one client, the adapter opens `/new/note-manager` and returns `status: "navigating"` with a hint; run the same command again, or pass `--until-done` and chrome-use reruns it there. Only on the note manager itself does a missing client report "changed its bundle".
 - **Missing metrics are `null`, never 0.** The data center reports "not computed yet" as `-1`; a note under a day old reads `-1` for impressions, view time and most rates. Image notes report `0` for the video-only rates, which means "n/a", so those are `null` too.
 - **Audience and traffic breakdowns need an audience.** Below the threshold (the page says 50 viewers in one place, 100 in another) they come back as `available: false` with a `reason`, e.g. `"观看数不足100，暂时无法分析"`.
 - **The `notes` cursor is a page number, not an offset.** If `limit` cuts a page short, `next_page` points back at that page, so resuming repeats a few notes rather than skipping them. Dedupe by `id`.

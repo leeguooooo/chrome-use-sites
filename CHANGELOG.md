@@ -5,6 +5,20 @@ This repo has no version numbers: chrome-use syncs `main`, so entries are dated
 by the day they reached `main`. Each pack's own README lists its adapters; this
 file says what changed and when.
 
+## 2026-11-19
+
+### Fixed
+- `xiaohongshu-creator/me`, `xiaohongshu-creator/notes`,
+  `xiaohongshu-creator/note-stats`: on a creator page other than the home, note
+  manager or data pages (the publish flow, `/publish/success`) they failed with
+  "Cannot find the creator page HTTP client — creator.xiaohongshu.com changed
+  its bundle", although only the page was different (chrome-use #906). The
+  client is now also found through any loaded module that calls it with an
+  endpoint key, so the adapters run where the tab is. When that does not give
+  exactly one client, they open the note manager and return
+  `status: "navigating"`; run the command again or pass `--until-done`. The
+  "changed its bundle" error is kept for the note manager itself.
+
 ## 2026-11-10
 
 ### Changed

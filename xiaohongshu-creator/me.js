@@ -8,6 +8,7 @@
   },
   "capabilities": ["network"],
   "readOnly": true,
+  "retryStatuses": ["navigating"],
   "example": "chrome-use site xiaohongshu-creator/me"
 }
 */
@@ -16,7 +17,7 @@ async function(args) {
   args = args || {}
   const budget = xhscBudget()
   const ready = await xhscReady(budget)
-  if (ready.error) return ready
+  if (!ready.client) return ready
   const { client, user } = ready
   const wantSummary = String(args.summary).toLowerCase() !== 'false'
 

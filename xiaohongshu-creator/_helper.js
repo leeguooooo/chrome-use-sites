@@ -10,8 +10,16 @@
 // The client is located through a module that calls it with a known endpoint
 // key (`.get("NOTE_STATICS"` and friends). Export names are minified and change
 // between builds; the endpoint keys are string literals and have not.
+//
+// Those modules belong to the home, note manager and data pages. Other creator
+// pages (the publish flow, /publish/success) load the same app without them,
+// so there the client is found through any module that calls it with an
+// endpoint key (chrome-use #906). If that does not give exactly one client,
+// the adapter opens the note manager and reports `status: "navigating"`.
 
 const XHSC_CLIENT_KEYS = ['NOTE_STATICS', 'USER_POSTED_NOTES', 'QUERY_ACCOUNT_DATA', 'PERSONAL_INFO']
+// The page every adapter here was built on: its bundle has the known keys.
+const XHSC_NOTE_MANAGER = '/new/note-manager'
 
 function xhscSleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -62,7 +70,64 @@ function xhscFindClient() {
       }
     }
   }
-  return null
+  const any = xhscFindAnyClient(req)
+  if (any) xhscClientCache = any
+  return any
+}
+
+/**
+ * The client as used by any loaded module: `x.LV.get("SOME_ENDPOINT_KEY"` or
+ * `.post(…`, where `x` is a webpack import. Returns it only when every such
+ * call site leads to one and the same client object; two different ones, or
+ * more candidates than this bundle has ever had, return null instead of a
+ * guess. Plain string scans, no backtracking regex over a whole module.
+ */
+function xhscFindAnyClient(req) {
+  const seen = new Map()
+  let found = null
+  for (const id of Object.keys(req.m)) {
+    let src
+    try { src = String(req.m[id]) } catch (e) { continue }
+    for (const verb of ['.get("', '.post("']) {
+      let p = -1
+      for (let n = 0; n < 20 && (p = src.indexOf(verb, p + 1)) !== -1; n++) {
+        const arg = p + verb.length
+        if (!/^[A-Z][A-Z0-9_]{3,}"/.test(src.slice(arg, arg + 64))) continue
+        const call = /(\w+)\.(\w+)$/.exec(src.slice(Math.max(0, p - 48), p))
+        if (!call) continue
+        // `var a=t(11237)`: where the module imports that name.
+        let imp = null
+        for (let q = -1, tries = 0; tries < 200 && (q = src.indexOf(call[1] + '=', q + 1)) !== -1; tries++) {
+          if (q > 0 && /[\w$.]/.test(src[q - 1])) continue
+          imp = /^\w+\((\d+)\)/.exec(src.slice(q + call[1].length + 1, q + call[1].length + 24))
+          if (imp) break
+        }
+        if (!imp) continue
+        const key = imp[1] + '.' + call[2]
+        if (!seen.has(key)) {
+          if (seen.size >= 8) return null
+          let client = null
+          try { client = req(Number(imp[1]))[call[2]] } catch (e) { client = null }
+          seen.set(key, xhscIsClient(client) ? client : null)
+        }
+        const client = seen.get(key)
+        if (!client) continue
+        if (found && found !== client) return null
+        found = client
+      }
+    }
+  }
+  return found
+}
+
+/** The tab's path, or null when it cannot be read. */
+function xhscPath() {
+  try {
+    const p = window.location && window.location.pathname
+    return typeof p === 'string' ? p : null
+  } catch (e) {
+    return null
+  }
 }
 
 /** The signed-in creator from the page's own Vuex store (no request), or null. */
@@ -89,9 +154,10 @@ function xhscBudget(ms) {
 }
 
 /**
- * Wait (bounded) for the creator app to boot, then return {client, user}, or
- * {error, hint}. The page loads its user asynchronously after navigation, so a
- * single immediate read would report "not signed in" on a cold tab.
+ * Wait (bounded) for the creator app to boot, then return {client, user},
+ * {error, hint}, or {status: "navigating", …} with no client. The page loads
+ * its user asynchronously after navigation, so a single immediate read would
+ * report "not signed in" on a cold tab.
  */
 async function xhscReady(budget) {
   const deadline = Date.now() + Math.min(4000, budget ? budget.left() - 2000 : 4000)
@@ -108,6 +174,21 @@ async function xhscReady(budget) {
     return {
       error: 'Not signed in to creator.xiaohongshu.com',
       hint: 'Open https://creator.xiaohongshu.com in this browser and log in, then retry.',
+    }
+  }
+  // Signed in, but this page's bundle gave no client. On the note manager that
+  // means the bundle changed. Anywhere else the page may just not load it:
+  // open the note manager and let the caller run the command again there.
+  const path = xhscPath()
+  if (path !== null && path.indexOf(XHSC_NOTE_MANAGER) !== 0 && typeof window.location.assign === 'function') {
+    const url = 'https://creator.xiaohongshu.com' + XHSC_NOTE_MANAGER
+    setTimeout(() => window.location.assign(url), 400 + Math.floor(Math.random() * 400))
+    return {
+      status: 'navigating',
+      url,
+      retryAfterMs: 4000,
+      hint: 'This creator page (' + path + ') does not load the HTTP client these adapters call. ' +
+        'Opening the note manager; run the same command again there, or pass --until-done.',
     }
   }
   return {

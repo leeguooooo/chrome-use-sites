@@ -9,6 +9,7 @@
   },
   "capabilities": ["network"],
   "readOnly": true,
+  "retryStatuses": ["navigating"],
   "example": "chrome-use site xiaohongshu-creator/note-stats 6abbe0ef000000001203e9c7"
 }
 */
@@ -25,7 +26,7 @@ async function(args) {
 
   const budget = xhscBudget()
   const ready = await xhscReady(budget)
-  if (ready.error) return ready
+  if (!ready.client) return ready
   const { client } = ready
   const opts = { params: { note_id: noteId }, transform: true }
   const wantAudience = String(args.audience).toLowerCase() !== 'false'

@@ -10,6 +10,7 @@
   },
   "capabilities": ["network"],
   "readOnly": true,
+  "retryStatuses": ["navigating"],
   "example": "chrome-use site xiaohongshu-creator/notes --limit 10 --tab published"
 }
 */
@@ -50,7 +51,7 @@ async function(args) {
 
   const budget = xhscBudget()
   const ready = await xhscReady(budget)
-  if (ready.error) return ready
+  if (!ready.client) return ready
   const { client } = ready
 
   // One request per server page of 10, capped by `limit`. This is the same

@@ -17,7 +17,19 @@ const fastClock = () => {
 }
 
 /** A creator page: Vuex user, webpack registry, and the signed HTTP client. */
-function page({ routes = {}, user = { userId: 'u-1', userName: 'Creator', redId: '000' }, seen = [], bundle = true } = {}) {
+function page({
+  routes = {},
+  user = { userId: 'u-1', userName: 'Creator', redId: '000' },
+  seen = [],
+  bundle = true,
+  // Module sources that call the client. The default is a note-manager one.
+  consumers = ['var a=n(11237);function E(e){return a.LV.get("NOTE_STATICS",{params:e,transform:!0})}'],
+  // A second client object behind module 777 (export Zq), for the ambiguous case.
+  otherClient = null,
+  // The tab's path; left out, the page has no readable location.
+  pathname = null,
+  assigned = [],
+} = {}) {
   const client = {
     interceptors: {},
     post: async () => {
@@ -37,16 +49,20 @@ function page({ routes = {}, user = { userId: 'u-1', userName: 'Creator', redId:
   }
   // Shaped like the real bundle: a consumer module imports the client module
   // and calls it with an endpoint key. The export name is minified (LV).
+  // 21069 re-exports the same client, as the live bundle does.
   const modules = {
     11237: { LV: client },
+    21069: { LV: client },
+    777: { Zq: otherClient },
     56462: {},
   }
   const req = (id) => modules[id]
   req.m = {
     100: new Function('e', 't', 'n', 'var x=n(9);function z(){return x.y}'),
-    56462: new Function('e', 't', 'n', 'var a=n(11237);function E(e){return a.LV.get("NOTE_STATICS",{params:e,transform:!0})}'),
   }
+  consumers.forEach((src, i) => { req.m[56462 + i] = new Function('e', 't', 'n', src) })
   const window = bundle ? { webpackChunkugc: { push: ([, , cb]) => cb(req) } } : {}
+  if (pathname !== null) window.location = { pathname, assign: (url) => assigned.push(url) }
   const document = {
     querySelector: (sel) =>
       sel === '#app' && user
@@ -97,6 +113,93 @@ test('a changed bundle says so instead of throwing', async () => {
   const r = await loadAdapter('./notes.js', { ...env, clock: fastClock() })({})
   assert.match(r.error, /HTTP client/)
   assert.match(r.hint, /changed its bundle/)
+})
+
+// A publish-flow page: the same app, none of the note-manager modules. These
+// call the client with other endpoint keys, through both modules that export it.
+const PUBLISH_PAGE = [
+  'var r,a=n(11237),i=n(5);function P(e){return a.LV.post("PUBLISH_NOTE",e)}function Q(){return a.LV.get("MCN_SEARCH")}',
+  'var o=n(21069);function C(){return o.LV.get("EVENTS_LIST",{transform:!0})}',
+]
+// The helper's 250 ms boot poll runs at once; every other timer is collected,
+// so a navigation the adapter schedules is checked by running it by hand.
+const timers = () => {
+  const pending = []
+  return {
+    pending,
+    setTimeout: (fn, ms) => (ms === 250 ? setTimeout(fn, 0) : pending.push(fn)),
+  }
+}
+
+test('#906: a creator page without the note-manager modules still reaches the client', async () => {
+  const seen = []
+  const assigned = []
+  const env = page({
+    seen,
+    assigned,
+    consumers: PUBLISH_PAGE,
+    pathname: '/publish/success',
+    routes: { [POSTED]: fixture('posted_page0.json') },
+  })
+  const r = await loadAdapter('./notes.js', env)({ limit: 10 })
+  assert.equal(r.error, undefined)
+  assert.equal(r.count, r.notes.length)
+  assert.ok(r.count > 0)
+  assert.deepEqual(seen.map((s) => s.path), [POSTED])
+  assert.deepEqual(assigned, [], 'the tab stays where it is')
+})
+
+test('#906: two different clients are not guessed between; every adapter opens the note manager instead', async () => {
+  for (const [file, args] of [['./notes.js', {}], ['./me.js', {}], ['./note-stats.js', { note_id: '6abbe0ef000000001203e9c7' }]]) {
+    const seen = []
+    const assigned = []
+    const t = timers()
+    const env = page({
+      seen,
+      assigned,
+      consumers: [...PUBLISH_PAGE, 'var z=n(777);function W(){return z.Zq.get("OTHER_API_KEY")}'],
+      otherClient: { interceptors: {}, get: async () => ({}), post: async () => ({}) },
+      pathname: '/publish/publish',
+    })
+    const r = await loadAdapter(file, { ...env, clock: fastClock(), setTimeout: t.setTimeout })(args)
+    assert.equal(r.status, 'navigating', file)
+    assert.equal(r.error, undefined, file)
+    assert.equal(r.url, 'https://creator.xiaohongshu.com/new/note-manager')
+    assert.match(r.hint, /\/publish\/publish/)
+    assert.equal(seen.length, 0, file + ' must not call the API from a page it is leaving')
+    assert.deepEqual(assigned, [], 'the navigation waits until the result is returned')
+    t.pending.forEach((fn) => fn())
+    assert.deepEqual(assigned, ['https://creator.xiaohongshu.com/new/note-manager'], file)
+  }
+})
+
+test('#906: a page with no bundle at all is left for the note manager, not blamed on the bundle', async () => {
+  const assigned = []
+  const t = timers()
+  const env = page({ bundle: false, assigned, pathname: '/publish/success' })
+  const r = await loadAdapter('./notes.js', { ...env, clock: fastClock(), setTimeout: t.setTimeout })({})
+  assert.equal(r.status, 'navigating')
+  t.pending.forEach((fn) => fn())
+  assert.equal(assigned.length, 1)
+})
+
+test('#906: on the note manager a missing client is still a changed bundle, and nothing navigates', async () => {
+  const assigned = []
+  const t = timers()
+  const env = page({ consumers: [], assigned, pathname: '/new/note-manager' })
+  const r = await loadAdapter('./notes.js', { ...env, clock: fastClock(), setTimeout: t.setTimeout })({})
+  assert.match(r.error, /HTTP client/)
+  assert.match(r.hint, /changed its bundle/)
+  t.pending.forEach((fn) => fn())
+  assert.deepEqual(assigned, [])
+})
+
+test('every adapter reruns on "navigating" under --until-done', () => {
+  for (const f of ['me.js', 'notes.js', 'note-stats.js']) {
+    const src = fs.readFileSync(new URL('./' + f, import.meta.url), 'utf8')
+    const meta = JSON.parse(src.match(/\/\* @meta\s*([\s\S]*?)\*\//)[1])
+    assert.deepEqual(meta.retryStatuses, ['navigating'], f)
+  }
 })
 
 test('no adapter signs or fetches on its own', () => {
